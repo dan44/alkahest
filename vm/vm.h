@@ -16,6 +16,15 @@
 
 #define EVACUATIONS_PER_RUN 1000
 
+#define FROMSPACE_MASK 0x00000001
+#define GEN_MASK       0x00000006
+#define GEN_SHIFT               1
+#define COHORT_MASK    0x00000007
+#define COHORTS        (GENERATIONS*2)
+
+#define GEN(flags)     ((flags&GEN_MASK)>>GEN_SHIFT)
+#define COHORT(g,f)    (((g)<<GEN_SHIFT)|(f))
+
 struct arena_header;
 struct arenas;
 
@@ -37,7 +46,7 @@ struct arena_type {
   struct arenas *arenas;
   struct arena_header *from;
   int header_size;
-  struct arena_header * (members[GENERATIONS][2]);
+  struct arena_header * (members[COHORTS]);
   /* to-space pointers for this type */
   struct arena_header *to;
   void *free,*end;
@@ -45,12 +54,6 @@ struct arena_type {
   struct arena_header * (*arena_alloc)(struct arenas *,int);
   void * (*evacuate)(struct arena_type *,void *);
 };
-
-#define FROMSPACE_MASK 0x00000001
-#define GEN_MASK       0x00000006
-#define GEN_SHIFT               1
-
-#define GEN(flags)     ((flags&GEN_MASK)>>GEN_SHIFT)
 
 struct arena_header {
   uint32_t flags;

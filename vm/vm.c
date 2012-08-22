@@ -85,7 +85,7 @@ void arena_free(struct arena_header *arena) {
   if(arena->list.prev) {
     arena->list.prev->list.next = arena->list.next;
   } else {
-    arena->type->members[GEN(arena->flags)][arena->flags&FROMSPACE_MASK] = arena->list.next;
+    arena->type->members[arena->flags&COHORT_MASK] = arena->list.next;
   }
   if(arena->list.next) {
     arena->list.next->list.prev = arena->list.prev;
@@ -106,10 +106,8 @@ void arenas_type_init(struct arenas * arenas,struct arena_type *type,
   type->free = type->end = 0;
   type->arena_alloc = arena_alloc;
   type->evacuate = evacuate;
-  for(int g=0;g<GENERATIONS;g++) {
-    for(int t=0;t<2;t++) {
-      type->members[g][t] = 0;
-    }
+  for(int c=0;c<COHORTS;c++) {
+    type->members[c] = 0;
   }
 }
 
@@ -117,11 +115,11 @@ void arena_init(struct arena_header *header,struct arena_type *type,int fromspac
   header->type = type;
   header->flags = fromspace&FROMSPACE_MASK;
   header->list.prev = 0;
-  header->list.next = type->members[0][fromspace&FROMSPACE_MASK];
-  if(type->members[0][fromspace&FROMSPACE_MASK]) {
-    type->members[0][fromspace&FROMSPACE_MASK]->list.prev = header;
+  header->list.next = type->members[fromspace&FROMSPACE_MASK];
+  if(type->members[fromspace&FROMSPACE_MASK]) {
+    type->members[fromspace&FROMSPACE_MASK]->list.prev = header;
   }
-  type->members[0][fromspace&FROMSPACE_MASK] = header;
+  type->members[fromspace&FROMSPACE_MASK] = header;
 }
 
 struct arena_header * arena_cons_alloc(struct arenas *arenas,int fromspace) {
@@ -265,11 +263,9 @@ void print_gc_stats(struct arenas * arenas) {
 #endif
 
 void arenas_type_destroy(struct arena_type *type,int to) {
-  for(int g=0;g<GENERATIONS;g++) {
-    for(int t=0;t<to+1;t++) {
-      while(type->members[g][t]) {
-        arena_free(type->members[g][t]);
-      }
+  for(int c=0;c<COHORTS;c++) {
+    while(type->members[c]) {
+      arena_free(type->members[c]);
     }
   }  
 }
@@ -301,13 +297,13 @@ void free_fromspace(struct arenas *arenas) {
 
 void remark_type_to_as_from(struct arena_type *type) {
   for(int g=0;g<GENERATIONS;g++) {
-    if(type->members[g][0]) {
-      for(struct arena_header *h=type->members[g][1];h;h=h->list.next) {
+    if(type->members[COHORT(g,0)]) {
+      for(struct arena_header *h=type->members[COHORT(g,1)];h;h=h->list.next) {
         h->flags |= FROMSPACE_MASK;
       }
     }
-    type->members[g][1] = type->members[g][0];
-    type->members[g][0] = 0;
+    type->members[COHORT(g,1)] = type->members[COHORT(g,0)];
+    type->members[COHORT(g,0)] = 0;
   }
 }
 
