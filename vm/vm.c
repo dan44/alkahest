@@ -175,20 +175,21 @@ void * cons_evacuate(struct arena_type *type,void *start) {
   from = (struct cons *)start;
   to = (struct cons *)arena_ensure_tospace(type,sizeof(struct cons));
   memcpy(to,from,sizeof(struct cons));
-  from->brooks = to;
   if(((intptr_t)to->brooks)&1 && to->car.p) {
     mark_reference(type->arenas,&(to->car.p));
   }
   if(((intptr_t)to->brooks)&2 && to->cdr.p) {
     mark_reference(type->arenas,&(to->cdr.p));
   }
+  from->brooks = to;
+  to->brooks=to;
   return to;
 }
 
 void * evacuate(void *from) {
   struct arena_header *header;
   
-  header = (struct arena_header *)((intptr_t)from&(~(ARENA_SIZE-1)));
+  header = ARENA_OF(from);
   if(!(header->flags&FROMSPACE_MASK))
     return from;
   return header->type->evacuate(header->type,from);
@@ -264,8 +265,10 @@ void print_gc_stats(struct arenas * arenas) {
 
 void arenas_type_destroy(struct arena_type *type,int to) {
   for(int c=0;c<COHORTS;c++) {
-    while(type->members[c]) {
-      arena_free(type->members[c]);
+    if(to || c&FROMSPACE_MASK) { 
+      while(type->members[c]) {
+        arena_free(type->members[c]);
+      }
     }
   }  
 }
@@ -298,7 +301,7 @@ void free_fromspace(struct arenas *arenas) {
 void remark_type_to_as_from(struct arena_type *type) {
   for(int g=0;g<GENERATIONS;g++) {
     if(type->members[COHORT(g,0)]) {
-      for(struct arena_header *h=type->members[COHORT(g,1)];h;h=h->list.next) {
+      for(struct arena_header *h=type->members[COHORT(g,0)];h;h=h->list.next) {
         h->flags |= FROMSPACE_MASK;
       }
     }
