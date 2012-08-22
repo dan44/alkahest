@@ -85,7 +85,7 @@ void arena_free(struct arena_header *arena) {
   if(arena->list.prev) {
     arena->list.prev->list.next = arena->list.next;
   } else {
-    arena->type->members[arena->gen][arena->flags&FROMSPACE_MASK] = arena->list.next;
+    arena->type->members[GEN(arena->flags)][arena->flags&FROMSPACE_MASK] = arena->list.next;
   }
   if(arena->list.next) {
     arena->list.next->list.prev = arena->list.prev;
@@ -115,7 +115,6 @@ void arenas_type_init(struct arenas * arenas,struct arena_type *type,
 
 void arena_init(struct arena_header *header,struct arena_type *type,int fromspace) {
   header->type = type;
-  header->gen = 0;
   header->flags = fromspace&FROMSPACE_MASK;
   header->list.prev = 0;
   header->list.next = type->members[0][fromspace&FROMSPACE_MASK];

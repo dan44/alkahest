@@ -50,9 +50,10 @@ struct arena_type {
 #define GEN_MASK       0x00000006
 #define GEN_SHIFT               1
 
+#define GEN(flags)     ((flags&GEN_MASK)>>GEN_SHIFT)
+
 struct arena_header {
   uint32_t flags;
-  uint32_t gen; 
   struct arena_header_list list;
   struct arena_type *type;
 };
