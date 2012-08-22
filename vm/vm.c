@@ -85,7 +85,7 @@ void arena_free(struct arena_header *arena) {
   if(arena->list.prev) {
     arena->list.prev->list.next = arena->list.next;
   } else {
-    arena->type->members[arena->gen][arena->tospace] = arena->list.next;
+    arena->type->members[arena->gen][arena->flags&FROMSPACE_MASK] = arena->list.next;
   }
   if(arena->list.next) {
     arena->list.next->list.prev = arena->list.prev;
@@ -113,24 +113,24 @@ void arenas_type_init(struct arenas * arenas,struct arena_type *type,
   }
 }
 
-void arena_init(struct arena_header *header,struct arena_type *type,int tospace) {
+void arena_init(struct arena_header *header,struct arena_type *type,int fromspace) {
   header->type = type;
   header->gen = 0;
-  header->tospace = tospace;
+  header->flags = fromspace&FROMSPACE_MASK;
   header->list.prev = 0;
-  header->list.next = type->members[0][tospace];
-  if(type->members[0][tospace]) {
-    type->members[0][tospace]->list.prev = header;
+  header->list.next = type->members[0][fromspace&FROMSPACE_MASK];
+  if(type->members[0][fromspace&FROMSPACE_MASK]) {
+    type->members[0][fromspace&FROMSPACE_MASK]->list.prev = header;
   }
-  type->members[0][tospace] = header;
+  type->members[0][fromspace&FROMSPACE_MASK] = header;
 }
 
-struct arena_header * arena_cons_alloc(struct arenas *arenas,int tospace) {
+struct arena_header * arena_cons_alloc(struct arenas *arenas,int fromspace) {
   struct arena_cons_header *arena;
   int data_size,usable_data_size;
 
   arena = arena_alloc();
-  arena_init(&(arena->common),&(arenas->cons_type.common),tospace);
+  arena_init(&(arena->common),&(arenas->cons_type.common),fromspace);
   arena->free = (struct cons *)((void *)arena + sizeof(struct arena_cons_header));
   data_size = ARENA_SIZE - sizeof(struct arena_cons_header);
   usable_data_size = HOWMANY(data_size,struct cons)*sizeof(struct cons);
@@ -143,7 +143,7 @@ struct arena_header * arena_cons_alloc(struct arenas *arenas,int tospace) {
 
 struct arena_header * arena_ensure_fromspace(struct arena_type *type) {
   if(!type->from) {
-    type->from = type->arena_alloc(type->arenas,0);
+    type->from = type->arena_alloc(type->arenas,1);
   }
   return type->from;
 }
@@ -153,7 +153,7 @@ struct arena_header * arena_ensure_tospace(struct arena_type *type,size_t bytes)
 
   // TODO: not ideal to waste the rest of the arena for a large alloc
   if(!type->to || type->free+bytes >= type->end ) {
-    type->to = type->arena_alloc(type->arenas,1);
+    type->to = type->arena_alloc(type->arenas,0);
     type->free = (void *)type->to + type->header_size; 
     type->end = (void *)type->to + ARENA_SIZE;
 #if DEBUG
@@ -185,7 +185,6 @@ void * cons_evacuate(struct arena_type *type,void *start) {
   if(((intptr_t)to->brooks)&2 && to->cdr.p) {
     mark_reference(type->arenas,&(to->cdr.p));
   }
-  from->brooks = to;
   return to;
 }
 
@@ -193,7 +192,7 @@ void * evacuate(void *from) {
   struct arena_header *header;
   
   header = (struct arena_header *)((intptr_t)from&(~(ARENA_SIZE-1)));
-  if(header->tospace)
+  if(!(header->flags&FROMSPACE_MASK))
     return from;
   return header->type->evacuate(header->type,from);
 }
@@ -303,13 +302,13 @@ void free_fromspace(struct arenas *arenas) {
 
 void remark_type_to_as_from(struct arena_type *type) {
   for(int g=0;g<GENERATIONS;g++) {
-    if(type->members[g][1]) {
+    if(type->members[g][0]) {
       for(struct arena_header *h=type->members[g][1];h;h=h->list.next) {
-        h->tospace=0;
+        h->flags |= FROMSPACE_MASK;
       }
     }
-    type->members[g][0] = type->members[g][1];
-    type->members[g][1] = 0;
+    type->members[g][1] = type->members[g][0];
+    type->members[g][0] = 0;
   }
 }
 

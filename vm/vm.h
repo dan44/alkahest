@@ -46,8 +46,12 @@ struct arena_type {
   void * (*evacuate)(struct arena_type *,void *);
 };
 
+#define FROMSPACE_MASK 0x00000001
+#define GEN_MASK       0x00000006
+#define GEN_SHIFT               1
+
 struct arena_header {
-  uint32_t tospace; /* Must be first */
+  uint32_t flags;
   uint32_t gen; 
   struct arena_header_list list;
   struct arena_type *type;
