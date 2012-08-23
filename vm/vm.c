@@ -1,5 +1,4 @@
 #define _POSIX_C_SOURCE 200112L
-#define DEBUG 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -55,9 +54,9 @@ void queue_push(struct queue *q,void *entry) {
   *(q->tail->tail++) = entry;
 }
 
-void * queue_pull(struct queue *q) {
+static void queue_skip_empty(struct queue *q) {
   struct queue_frame *empty;
-
+  
   while(q->head && q->head->head == q->head->tail) {
     empty = q->head;
     q->head = q->head->next;
@@ -65,10 +64,30 @@ void * queue_pull(struct queue *q) {
   }
   if(!q->head) {
     q->tail = 0;
+  }
+}
+
+void * queue_pull(struct queue *q) {
+  void *out;
+
+  if(!q->head) {
     return 0;
   }
-  return *(q->head->head++);
+  out = *(q->head->head++);
+  queue_skip_empty(q);
+  return out;
 }
+
+#if DEBUG
+void queue_stats(struct queue *q) {
+  int count = 0;
+  
+  for(struct queue_frame *r=q->head;r;r=r->next) {
+    count += r->tail-r->head;
+  }
+  printf("queue %p size %d\n",q,count);
+}
+#endif
 
 void * arena_alloc() {
   void *out;
@@ -80,7 +99,7 @@ void * arena_alloc() {
 
 void arena_free(struct arena_header *arena) {
 #if DEBUG
-  printf("Freeing arena %p\n",arena);
+  printf("Freeing arena %p (%d)\n",arena,arena->flags);
 #endif
   if(arena->list.prev) {
     arena->list.prev->list.next = arena->list.next;
@@ -181,14 +200,14 @@ void * cons_evacuate(struct arena_type *type,void *start) {
   if(((intptr_t)to->brooks)&2 && to->cdr.p) {
     mark_reference(type->arenas,&(to->cdr.p));
   }
+  to->brooks = (struct cons *)((intptr_t)to | ((intptr_t)from->brooks&3));
   from->brooks = to;
-  to->brooks=to;
   return to;
 }
 
 void * evacuate(void *from) {
   struct arena_header *header;
-  
+
   header = ARENA_OF(from);
   if(!(header->flags&FROMSPACE_MASK))
     return from;
@@ -201,8 +220,7 @@ int run_evacuations(struct arenas *arenas) {
   for(int i=0;i<EVACUATIONS_PER_RUN;i++) {
     ptr = (void **)queue_pull(&(arenas->grey));
     if(!ptr) {
-      printf("No more evacuations\n");
-      return 0;
+      return i>0;
     }
     if(ptr) {
       *ptr = evacuate(*ptr);
@@ -234,6 +252,7 @@ struct cons * cons_alloc(struct arenas *arenas) {
 struct arenas * arenas_init() {
   struct arenas *arenas;
   arenas = malloc(sizeof(struct arenas));
+  arenas->flags = 0;
   arenas_cons_init(arenas,&(arenas->cons_type));
   queue_init(&(arenas->grey));
   queue_init(&(arenas->rootset));
@@ -280,8 +299,11 @@ int pull_from_rootset(struct arenas *arenas) {
   if(!member) {
     return 0;
   }
-  *member = evacuate(*member);
-  return 1;
+  if(*member) {
+    *member = evacuate(*member);
+    return 1;
+  }
+  return 0;
 }
 
 void populate_rootset(struct arenas *arenas) {
@@ -308,6 +330,7 @@ void remark_type_to_as_from(struct arena_type *type) {
     type->members[COHORT(g,1)] = type->members[COHORT(g,0)];
     type->members[COHORT(g,0)] = 0;
   }
+  type->to = 0;
 }
 
 void remark_to_as_from(struct arenas *arenas) {
@@ -335,10 +358,7 @@ int evacuate_step(struct arenas *arenas) {
     return 0;
   if(run_evacuations(arenas)) { return 1; }
   if(pull_from_rootset(arenas)) { return 1; }
-  if(arenas->flags&FLAG_INGC) {
-    finish_gc(arenas);
-    return 0;
-  }
+  finish_gc(arenas);
   return 0;
 }
 
@@ -347,11 +367,10 @@ int work_for(struct arenas *arenas,int us) {
   int ret = 0;
   
   end = now_usec() + us;
-  while(evacuate_step(arenas) && now_usec() < end) {
-    ret = 1;
+  while((ret |= evacuate_step(arenas)) && now_usec() < end) {
   }
 #if DEBUG
-  printf("spent %ldus doing gc work\n",now_usec()-(end-us));
+  printf("spent %ldus doing gc work (%d)\n",now_usec()-(end-us),ret);
 #endif
   return ret;
 }
@@ -363,12 +382,36 @@ void arenas_destroy(struct arenas *arenas) {
   free(arenas);
 }
 
+#if STATS
+void arenas_type_stats(struct arena_type *type) {
+  printf("Type code %d\n",type->code);
+  for(int c=0;c<COHORTS;c++) {
+    int i = 0;
+    for(struct arena_header * h=type->members[c];h;h=h->list.next) {
+      i++;
+    }
+    printf(" cohort %d count %d\n",c,i);
+  }  
+}
+
+void arenas_stats(struct arenas *arenas) {
+  arenas_type_stats(&(arenas->cons_type.common));
+}
+#endif
+
+void full_gc(struct arenas *arenas) {
+#if DEBUG
+  printf("Starting requested full, non-incremental GC\n");
+#endif
+  start_gc(arenas);
+  while(work_for(arenas,1000)) {
+  }
+#if DEBUG
+  printf("Finished requested full, non-incremental GC\n");
+#endif
+}
+
 void main_vm(struct arenas * arenas) {
-  start_gc(arenas);
-  while(work_for(arenas,1000)) {
-  }
-  printf("Mark\n");
-  start_gc(arenas);
-  while(work_for(arenas,1000)) {
-  }
+  full_gc(arenas);
+  full_gc(arenas);
 }

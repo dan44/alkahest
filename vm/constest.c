@@ -78,10 +78,18 @@ int main(int argc,char **argv) {
   
   arenas = arenas_init();
   root = read_words(arenas);
-  dump_words(root,buffer,0);
   arenas->registers[0].r = root;
   arenas->reg_refs[0] = 1;
   main_vm(arenas);
+  for(int i=0;i<50;i++)
+    full_gc(arenas);
+  dump_words(arenas->registers[0].r,buffer,0);
+  arenas->registers[0].r = 0;
+  arenas->reg_refs[0] = 1;
+  full_gc(arenas);
+#if STATS
+  arenas_stats(arenas);
+#endif
   arenas_destroy(arenas);
   return 1;
 }

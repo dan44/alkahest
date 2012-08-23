@@ -1,12 +1,11 @@
 #ifndef VM_H
 #define VM_H
 
-#define STATS 1
 
 #include <stdint.h>
 
 #define ARENA_SIZE (64*1024)
-#define QUEUE_FRAME_SIZE (64*1024)
+#define QUEUE_FRAME_SIZE (1024*1024)
 
 #define ARENA_OF(p) ((struct arena_header *)((intptr_t)(p)&(~(ARENA_SIZE-1))))
 
@@ -110,9 +109,11 @@ struct cons * cons_alloc(struct arenas *);
 
 #if STATS
 void print_gc_stats(struct arenas *);
+void arenas_stats(struct arenas *);
 #endif
 
 void main_vm(); /* XXX */
+void full_gc();
 
 void * evacuate(void *);
 
@@ -120,7 +121,7 @@ static inline void * _write_barrier(void *from,void *to) {
   struct arena_header *to_a;
   
   to_a = ARENA_OF(to);
-  if(to_a->flags&FROMSPACE_MASK) {
+  if(to_a->flags&FROMSPACE_MASK && to_a->type->arenas->flags&FLAG_INGC) { // INGC remove
     return evacuate(to);  //XXX delayed 
   }
   return to;
@@ -134,8 +135,8 @@ static inline void * _write_barrier(void *from,void *to) {
 #define CONS_CAR_I(c) (BROOKS(c)->car.i)
 #define CONS_CDR_P(c) (BROOKS(c)->cdr.p)
 #define CONS_CDR_I(c) (BROOKS(c)->cdr.i)
-#define CONS_CAR_I_SET(c,v) do { BROOKS(c)->car.i=(v); _BITOP(BROOKS(c),&~,1); } while(0)
-#define CONS_CDR_I_SET(c,v) do { BROOKS(c)->cdr.i=(v); _BITOP(BROOKS(c),&~,2); } while(0)
+#define CONS_CAR_I_SET(c,v) do { struct cons * p=BROOKS(c); p->car.i=(v); _BITOP(p,&~,1); } while(0)
+#define CONS_CDR_I_SET(c,v) do { struct cons * p=BROOKS(c); p->cdr.i=(v); _BITOP(p,&~,2); } while(0)
 
 static inline void CONS_CAR_P_SET(struct cons *c,void *v) {
   c = BROOKS(c);
