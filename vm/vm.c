@@ -116,6 +116,8 @@ void arenas_type_init(struct arenas * arenas,struct arena_type *type,
                       uint32_t code,
                       struct arena_header * (*arena_alloc)(struct arenas *,int),
                       void * (*evacuate)(struct arena_type *,void *),
+                      void (*grey_push)(struct arena_type *,void *),
+                      void * (*grey_pull)(struct arena_type *),
                       size_t header_size) {
   type->arenas = arenas;
   type->code = code;
@@ -125,6 +127,8 @@ void arenas_type_init(struct arenas * arenas,struct arena_type *type,
   type->free = type->end = 0;
   type->arena_alloc = arena_alloc;
   type->evacuate = evacuate;
+  type->grey_push = grey_push;
+  type->grey_pull = grey_pull;
   for(int c=0;c<COHORTS;c++) {
     type->members[c] = 0;
   }
@@ -185,7 +189,11 @@ struct arena_header * arena_ensure_tospace(struct arena_type *type,size_t bytes)
 }
 
 void mark_reference(struct arenas *arenas,void *ref) {
-  queue_push(&(arenas->grey),ref);
+  struct arena_type *type;
+  
+  type = ARENA_OF(ref)->type;
+  
+  type->grey_push(type,ref);
 }
 
 void * cons_evacuate(struct arena_type *type,void *start) {
@@ -205,6 +213,14 @@ void * cons_evacuate(struct arena_type *type,void *start) {
   return to;
 }
 
+void cons_grey_push(struct arena_type *type,void *ref) {
+  queue_push(&(((struct arena_cons_type *)type)->grey),ref);
+}
+
+void * cons_grey_pull(struct arena_type *type) {
+  return queue_pull(&(((struct arena_cons_type *)type)->grey));
+}
+
 void * evacuate(void *from) {
   struct arena_header *header;
 
@@ -214,11 +230,22 @@ void * evacuate(void *from) {
   return header->type->evacuate(header->type,from);
 }
 
+void ** type_grey_pull(struct arena_type *type) {
+  return type->grey_pull(type);
+}
+
+void * grey_pull(struct arenas *arenas) {
+  void *out;
+  out = type_grey_pull(&(arenas->cons_type.common));
+  if(out) { return out; }
+  return 0;
+}
+
 int run_evacuations(struct arenas *arenas) {
   void **ptr;
 
   for(int i=0;i<EVACUATIONS_PER_RUN;i++) {
-    ptr = (void **)queue_pull(&(arenas->grey));
+    ptr = (void **)grey_pull(arenas);
     if(!ptr) {
       return i>0;
     }
@@ -232,7 +259,9 @@ int run_evacuations(struct arenas *arenas) {
 void arenas_cons_init(struct arenas *arenas,struct arena_cons_type *type) {
   arenas_type_init(arenas,&(type->common),ARENA_TYPE_CODE_CONS,
                    arena_cons_alloc,cons_evacuate,
+                   cons_grey_push,cons_grey_pull,
                    sizeof(struct arena_cons_header));
+  queue_init(&(type->grey));
 }
 
 struct cons * cons_alloc(struct arenas *arenas) {
@@ -254,7 +283,6 @@ struct arenas * arenas_init() {
   arenas = malloc(sizeof(struct arenas));
   arenas->flags = 0;
   arenas_cons_init(arenas,&(arenas->cons_type));
-  queue_init(&(arenas->grey));
   queue_init(&(arenas->rootset));
   for(int i=0;i<NUM_REGISTERS/BITEL_BITS;i++) {
     arenas->reg_refs[i] = 0;
@@ -375,10 +403,14 @@ int work_for(struct arenas *arenas,int us) {
   return ret;
 }
 
+void arenas_cons_destroy(struct arena_cons_type *type) {
+  arenas_type_destroy(&(type->common),1);
+  queue_destroy(&(type->grey));
+}
+
 void arenas_destroy(struct arenas *arenas) {
-  queue_destroy(&(arenas->grey));
   queue_destroy(&(arenas->rootset));
-  arenas_type_destroy(&(arenas->cons_type.common),1);
+  arenas_cons_destroy(&(arenas->cons_type));
   free(arenas);
 }
 
