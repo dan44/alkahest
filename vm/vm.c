@@ -264,7 +264,16 @@ void arenas_cons_init(struct arenas *arenas,struct arena_cons_type *type) {
   queue_init(&(type->grey));
 }
 
-struct cons * cons_alloc(struct arenas *arenas) {
+void reg_set_p(struct arenas *arenas,int idx,void *p) {
+  arenas->registers[idx].r = p;
+  arenas->reg_refs[idx/BITEL_BITS] |= 1<<(idx&(BITEL_BITS-1));
+}
+
+void * reg_get_p(struct arenas *arenas,int idx) {
+  return arenas->registers[idx].r;
+}
+
+void cons_alloc(struct arenas *arenas,int idx) {
   struct cons * out;
   struct arena_cons_header *h;
 
@@ -275,7 +284,8 @@ struct cons * cons_alloc(struct arenas *arenas) {
   }
   out->brooks = out;
   out->car.p = out->cdr.p = 0;
-  return out;
+  /* Put it in the specified register */
+  reg_set_p(arenas,idx,out);
 }
 
 struct arenas * arenas_init() {

@@ -108,8 +108,11 @@ struct arenas {
 void die(int,char *);
 struct arenas * arenas_init();
 void arenas_destroy(struct arenas *);
+void cons_alloc(struct arenas *arenas,int idx);
 
-struct cons * cons_alloc(struct arenas *);
+void reg_set_p(struct arenas *arenas,int idx,void *p);
+void * reg_get_p(struct arenas *arenas,int idx);
+
 
 #if STATS
 void print_gc_stats(struct arenas *);
