@@ -86,7 +86,6 @@ struct arena_cons_type {
 
 struct arena_cons_header {
   struct arena_header common;
-  struct cons *free,*end;
 };
 
 union value {

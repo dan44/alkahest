@@ -121,10 +121,11 @@ void arenas_type_init(struct arenas * arenas,struct arena_type *type,
                       size_t header_size) {
   type->arenas = arenas;
   type->code = code;
-  type->current[1].arena = 0;
   type->header_size = header_size;
   type->current[0].arena = 0;
+  type->current[1].arena = 0;
   type->current[0].free = type->current[0].end = 0;
+  type->current[1].free = type->current[1].end = 0;
   type->arena_alloc = arena_alloc;
   type->evacuate = evacuate;
   type->grey_push = grey_push;
@@ -148,17 +149,19 @@ void arena_init(struct arena_header *header,struct arena_type *type,int fromspac
 struct arena_header * arena_cons_alloc(struct arenas *arenas,int fromspace) {
   struct arena_cons_header *arena;
   int data_size,usable_data_size;
+  struct arena_current *current;
 
-  arena = arena_alloc();
-  arena_init(&(arena->common),&(arenas->cons_type.common),fromspace);
-  arena->free = (struct cons *)((void *)arena + sizeof(struct arena_cons_header));
+  current = &(arenas->cons_type.common.current[fromspace]);
+  current->arena = arena_alloc();
+  arena_init(current->arena,&(arenas->cons_type.common),fromspace);
+  current->free = (struct cons *)((void *)current->arena + sizeof(struct arena_cons_header));
   data_size = ARENA_SIZE - sizeof(struct arena_cons_header);
   usable_data_size = HOWMANY(data_size,struct cons)*sizeof(struct cons);
-  arena->end = (struct cons *)((void *)arena->free + usable_data_size);
+  current->end = (struct cons *)((void *)current->free + usable_data_size);
 #if DEBUG
-  printf("arena=%p free=%p end=%p\n",arena,arena->free,arena->end);
+  printf("arena=%p free=%p end=%p\n",arena,current->free,current->end);
 #endif
-  return (struct arena_header *)arena;
+  return (struct arena_header *)current->arena;
 }
 
 struct arena_header * arena_ensure_fromspace(struct arena_type *type) {
@@ -282,8 +285,9 @@ void cons_alloc(struct arenas *arenas,int idx) {
   struct arena_cons_header *h;
 
   h = (struct arena_cons_header *)arena_ensure_fromspace(&(arenas->cons_type.common));
-  out = h->free++;
-  if(h->free == h->end) {
+  out = arenas->cons_type.common.current[1].free;
+  arenas->cons_type.common.current[1].free += sizeof(struct cons);
+  if(arenas->cons_type.common.current[1].free == arenas->cons_type.common.current[1].end) {
     arenas->cons_type.common.current[1].arena = 0;
   }
   out->brooks = out;
