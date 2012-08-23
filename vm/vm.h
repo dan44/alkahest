@@ -42,15 +42,19 @@ struct arena_header_list {
   struct arena_header *prev,*next;
 };
 
+struct arena_current {
+  struct arena_header *arena;
+  void *free,*end;
+};
+
 struct arena_type {
   uint32_t code;
   struct arenas *arenas;
-  struct arena_header *from;
   int header_size;
   struct arena_header * (members[COHORTS]);
+  /* TO = 0; FROM = 1, as ever */
   /* to-space pointers for this type */
-  struct arena_header *to;
-  void *free,*end;
+  struct arena_current current[2];
   /* virutal methods */
   struct arena_header * (*arena_alloc)(struct arenas *,int);
   void * (*evacuate)(struct arena_type *,void *);

@@ -121,10 +121,10 @@ void arenas_type_init(struct arenas * arenas,struct arena_type *type,
                       size_t header_size) {
   type->arenas = arenas;
   type->code = code;
-  type->from = 0;
+  type->current[1].arena = 0;
   type->header_size = header_size;
-  type->to = 0;
-  type->free = type->end = 0;
+  type->current[0].arena = 0;
+  type->current[0].free = type->current[0].end = 0;
   type->arena_alloc = arena_alloc;
   type->evacuate = evacuate;
   type->grey_push = grey_push;
@@ -162,26 +162,26 @@ struct arena_header * arena_cons_alloc(struct arenas *arenas,int fromspace) {
 }
 
 struct arena_header * arena_ensure_fromspace(struct arena_type *type) {
-  if(!type->from) {
-    type->from = type->arena_alloc(type->arenas,1);
+  if(!type->current[1].arena) {
+    type->current[1].arena = type->arena_alloc(type->arenas,1);
   }
-  return type->from;
+  return type->current[1].arena;
 }
 
 struct arena_header * arena_ensure_tospace(struct arena_type *type,size_t bytes) {
   void *out;
 
   // TODO: not ideal to waste the rest of the arena for a large alloc
-  if(!type->to || type->free+bytes >= type->end ) {
-    type->to = type->arena_alloc(type->arenas,0);
-    type->free = (void *)type->to + type->header_size; 
-    type->end = (void *)type->to + ARENA_SIZE;
+  if(!type->current[0].arena || type->current[0].free+bytes >= type->current[0].end ) {
+    type->current[0].arena = type->arena_alloc(type->arenas,0);
+    type->current[0].free = (void *)type->current[0].arena + type->header_size; 
+    type->current[0].end = (void *)type->current[0].arena + ARENA_SIZE;
 #if DEBUG
     printf("tospace arena=%p free=%p end=%p\n",type->to,type->free,type->end);
 #endif
   }
-  out = type->free;
-  type->free += bytes;
+  out = type->current[0].free;
+  type->current[0].free += bytes;
 #if STATS
   type->arenas->bytes_copied += bytes;
 #endif
@@ -192,7 +192,6 @@ void mark_reference(struct arenas *arenas,void *ref) {
   struct arena_type *type;
   
   type = ARENA_OF(ref)->type;
-  
   type->grey_push(type,ref);
 }
 
@@ -273,6 +272,11 @@ void * reg_get_p(struct arenas *arenas,int idx) {
   return arenas->registers[idx].r;
 }
 
+void reg_regrey(struct arenas *arenas,int idx) {
+  // XXX detect and only push if not currently there
+  queue_push(&(arenas->rootset),&(arenas->registers[idx].r));
+}
+
 void cons_alloc(struct arenas *arenas,int idx) {
   struct cons * out;
   struct arena_cons_header *h;
@@ -280,12 +284,13 @@ void cons_alloc(struct arenas *arenas,int idx) {
   h = (struct arena_cons_header *)arena_ensure_fromspace(&(arenas->cons_type.common));
   out = h->free++;
   if(h->free == h->end) {
-    arenas->cons_type.common.from = 0;
+    arenas->cons_type.common.current[1].arena = 0;
   }
   out->brooks = out;
   out->car.p = out->cdr.p = 0;
   /* Put it in the specified register */
   reg_set_p(arenas,idx,out);
+  //reg_regrey(arenas,idx);  
 }
 
 struct arenas * arenas_init() {
@@ -353,7 +358,6 @@ void populate_rootset(struct arenas *arenas) {
   }
 }
 
-/* TODO: make this step inceremental */
 void free_fromspace(struct arenas *arenas) {
   arenas_type_destroy(&(arenas->cons_type.common),0);
 }
@@ -368,7 +372,7 @@ void remark_type_to_as_from(struct arena_type *type) {
     type->members[COHORT(g,1)] = type->members[COHORT(g,0)];
     type->members[COHORT(g,0)] = 0;
   }
-  type->to = 0;
+  type->current[0].arena = 0;
 }
 
 void remark_to_as_from(struct arenas *arenas) {
@@ -382,8 +386,8 @@ void start_gc(struct arenas *arenas) {
 
 void finish_gc(struct arenas *arenas) {
   free_fromspace(arenas);
-  remark_to_as_from(arenas);
   arenas->flags &= ~FLAG_INGC;
+  remark_to_as_from(arenas);
 #if STATS
   arenas->last_bytes_copied = arenas->bytes_copied;
   arenas->bytes_copied = 0;
