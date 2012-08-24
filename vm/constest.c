@@ -2,23 +2,35 @@
 #include <stdlib.h>
 
 #include "vm.h"
+#include "opcodes.h"
 
 void add_list(struct arenas *arenas,uint32_t v) {
   /* r1 -- current list start & list whose car is matching pair for v; out
    * r2 -- newly allocated pair & current cons pair considered
    * r5 -- previous search position (for extending)
    */
+
+  uint32_t code_frag_c[] = {
+    OPCODEC(OPCODE_REGNIL,5), /* REGNIL 5 */
+    OPCODE_HALT               /* HALT     */
+  };
   
-  reg_set_p(arenas,5,0);
+  uint32_t code_frag_a[] = {
+    OPCODEC(OPCODE_REGNIL,2), /* REGNIL 2 */
+    OPCODEC(OPCODE_REGNIL,5), /* REGNIL 5 */
+    OPCODE_HALT               /* HALT     */
+  };
+   
+  execute(arenas,code_frag_c);
   if(reg_get_p(arenas,1)) {
-    for(reg_set_p(arenas,2,reg_get_p(arenas,1));
+    for(o_reg_assign(arenas,2,1);
         reg_get_p(arenas,2);
         reg_set_p(arenas,2,CONS_CDR_P((struct cons *)reg_get_p(arenas,2)))) {
       if(CONS_CAR_I(CONS_CAR_P((struct cons *)reg_get_p(arenas,2))) == v) {
-        reg_set_p(arenas,1,reg_get_p(arenas,2));
+        o_reg_assign(arenas,1,2);
         return;
       }
-      reg_set_p(arenas,5,reg_get_p(arenas,2));
+      o_reg_assign(arenas,5,2);
     }
   }
   cons_alloc(arenas,1);
@@ -30,8 +42,7 @@ void add_list(struct arenas *arenas,uint32_t v) {
   CONS_CAR_I_SET(CONS_CAR_P((struct cons *)reg_get_p(arenas,1)),v);
   CONS_CDR_P_SET(CONS_CAR_P((struct cons *)reg_get_p(arenas,1)),0);
   CONS_CDR_P_SET(reg_get_p(arenas,1),0);
-  reg_set_p(arenas,2,0);
-  reg_set_p(arenas,5,0);
+  execute(arenas,code_frag_a);
 }
 
 void read_word(struct arenas *arenas,char *line) {
@@ -42,22 +53,38 @@ void read_word(struct arenas *arenas,char *line) {
     * r4 -- current linear list of chars (or tail thereof) at this level
     * r5 -- used as scratch in callees
     */
-  reg_set_p(arenas,4,reg_get_p(arenas,0));
-  reg_set_p(arenas,3,0);
+
+  uint32_t code_frag_b[] = {
+    OPCODEC(OPCODE_REGNIL,3), /* REGNIL 3 */
+    OPCODEC(OPCODE_REGNIL,4), /* REGNIL 4 */
+    OPCODE_HALT               /* HALT     */
+  };
+
+  uint32_t code_frag_d[] = {
+    OPCODEC(OPCODE_REGNIL,3), /* REGNIL 3 */
+    OPCODE_HALT               /* HALT     */
+  };
+
+  uint32_t code_frag_e[] = {
+    OPCODEC(OPCODE_REGNIL,1), /* REGNIL 1 */
+    OPCODE_HALT               /* HALT     */
+  };
+
+  o_reg_assign(arenas,4,0);
+  execute(arenas,code_frag_d);  
   for(char *c=line;*c;c++) {
-    reg_set_p(arenas,1,reg_get_p(arenas,4));
+    o_reg_assign(arenas,1,4);
     add_list(arenas,(char)*c);
     if(!reg_get_p(arenas,0)) {
-      reg_set_p(arenas,0,reg_get_p(arenas,1));
+      o_reg_assign(arenas,0,1);
     } else if(!reg_get_p(arenas,4)) {
       CONS_CDR_P_SET(reg_get_p(arenas,3),reg_get_p(arenas,1));
     }
     reg_set_p(arenas,3,CONS_CAR_P((struct cons *)reg_get_p(arenas,1)));
     reg_set_p(arenas,4,CONS_CDR_P((struct cons *)reg_get_p(arenas,3)));
-    reg_set_p(arenas,1,0);
+    execute(arenas,code_frag_e);  
   }
-  reg_set_p(arenas,3,0);
-  reg_set_p(arenas,4,0);
+  execute(arenas,code_frag_b);
 }
 
 struct cons * read_words(struct arenas *arenas) {
