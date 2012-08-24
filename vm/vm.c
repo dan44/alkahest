@@ -90,6 +90,7 @@ void * arena_ensure_space(struct arena_type *type,size_t bytes,int from,int copy
   void *out;
   struct arena_current *current;
 
+  from=!!from;
   // TODO: not ideal to waste the rest of the arena for a large alloc
   current = &(type->current[from]);
   if(!current->arena || current->free + bytes >= current->end ) {
@@ -215,8 +216,10 @@ void reg_regrey(struct arenas *arenas,int idx) {
 void cons_alloc(struct arenas *arenas,int idx) {
   struct cons * out;
 
-  out = (struct cons *)arena_ensure_space(&(arenas->cons_type.common),
-                                          sizeof(struct cons),1,0);
+  out = (struct cons *)
+          arena_ensure_space(&(arenas->cons_type.common),
+                             sizeof(struct cons),
+                             arenas->flags&FLAG_INGC,0);
   out->brooks = out;
   out->car.p = out->cdr.p = 0;
   /* Put it in the specified register */
@@ -304,6 +307,7 @@ void remark_to_as_from(struct arenas *arenas) {
 }
 
 void start_gc(struct arenas *arenas) {
+  remark_to_as_from(arenas);
   populate_rootset(arenas);
   arenas->flags |= FLAG_INGC;
 }
@@ -311,7 +315,6 @@ void start_gc(struct arenas *arenas) {
 void finish_gc(struct arenas *arenas) {
   free_fromspace(arenas);
   arenas->flags &= ~FLAG_INGC;
-  remark_to_as_from(arenas);
 #if STATS
   arenas->last_bytes_copied = arenas->bytes_copied;
   arenas->bytes_copied = 0;
