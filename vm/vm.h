@@ -1,8 +1,9 @@
 #ifndef VM_H
 #define VM_H
 
-
 #include <stdint.h>
+
+#include "queue.h"
 
 #define ARENA_SIZE (64*1024)
 #define QUEUE_FRAME_SIZE (1024*1024)
@@ -28,15 +29,6 @@
 
 struct arena_header;
 struct arenas;
-
-struct queue {
-  struct queue_frame *head,*tail;
-};
-
-struct queue_frame {
-  struct queue_frame *next;
-  void **head,**tail,**end;
-};
 
 struct arena_header_list {
   struct arena_header *prev,*next;
