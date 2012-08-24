@@ -58,7 +58,8 @@ struct arena_type {
   /* virutal methods */
   struct arena_header * (*arena_alloc)(struct arenas *,int);
   void * (*evacuate)(struct arena_type *,void *);
-  void (*grey_push)(struct arena_type *,void *);
+  void   (*scavange)(struct arena_type *,void *);
+  void   (*grey_push)(struct arena_type *,void *);
   void * (*grey_pull)(struct arena_type *);
 };
 
@@ -99,7 +100,7 @@ union value {
 
 struct arenas {
   struct arena_cons_type cons_type;
-  struct queue rootset;
+  struct queue rootset,scavange;
   int flags;
   union value registers[NUM_REGISTERS];
   uint32_t reg_refs[NUM_REGISTERS/BITEL_BITS];
