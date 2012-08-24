@@ -164,29 +164,24 @@ struct arena_header * arena_cons_alloc(struct arenas *arenas,int fromspace) {
   return (struct arena_header *)current->arena;
 }
 
-struct arena_header * arena_ensure_fromspace(struct arena_type *type) {
-  if(!type->current[1].arena) {
-    type->current[1].arena = type->arena_alloc(type->arenas,1);
-  }
-  return type->current[1].arena;
-}
-
-struct arena_header * arena_ensure_tospace(struct arena_type *type,size_t bytes) {
+void * arena_ensure_space(struct arena_type *type,size_t bytes,int from,int copy) {
   void *out;
 
   // TODO: not ideal to waste the rest of the arena for a large alloc
-  if(!type->current[0].arena || type->current[0].free+bytes >= type->current[0].end ) {
-    type->current[0].arena = type->arena_alloc(type->arenas,0);
-    type->current[0].free = (void *)type->current[0].arena + type->header_size; 
-    type->current[0].end = (void *)type->current[0].arena + ARENA_SIZE;
+  if(!type->current[from].arena || 
+      type->current[from].free+bytes >= type->current[from].end ) {
+    type->current[from].arena = type->arena_alloc(type->arenas,from);
+    type->current[from].free = (void *)type->current[from].arena + type->header_size; 
+    type->current[from].end = (void *)type->current[from].arena + ARENA_SIZE;
 #if DEBUG
     printf("tospace arena=%p free=%p end=%p\n",type->to,type->free,type->end);
 #endif
   }
-  out = type->current[0].free;
-  type->current[0].free += bytes;
+  out = type->current[from].free;
+  type->current[from].free += bytes;
 #if STATS
-  type->arenas->bytes_copied += bytes;
+  if(copy)
+    type->arenas->bytes_copied += bytes;
 #endif
   return out;
 }
@@ -202,7 +197,7 @@ void * cons_evacuate(struct arena_type *type,void *start) {
   struct cons *from,*to;
   
   from = (struct cons *)start;
-  to = (struct cons *)arena_ensure_tospace(type,sizeof(struct cons));
+  to = (struct cons *)arena_ensure_space(type,sizeof(struct cons),0,1);
   memcpy(to,from,sizeof(struct cons));
   if(((intptr_t)to->brooks)&1 && to->car.p) {
     mark_reference(type->arenas,&(to->car.p));
@@ -284,12 +279,8 @@ void cons_alloc(struct arenas *arenas,int idx) {
   struct cons * out;
   struct arena_cons_header *h;
 
-  h = (struct arena_cons_header *)arena_ensure_fromspace(&(arenas->cons_type.common));
-  out = arenas->cons_type.common.current[1].free;
-  arenas->cons_type.common.current[1].free += sizeof(struct cons);
-  if(arenas->cons_type.common.current[1].free == arenas->cons_type.common.current[1].end) {
-    arenas->cons_type.common.current[1].arena = 0;
-  }
+  out = (struct cons *)arena_ensure_space(&(arenas->cons_type.common),
+                                          sizeof(struct cons),1,0);
   out->brooks = out;
   out->car.p = out->cdr.p = 0;
   /* Put it in the specified register */
