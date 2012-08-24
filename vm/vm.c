@@ -122,10 +122,10 @@ void arenas_type_init(struct arenas * arenas,struct arena_type *type,
   type->arenas = arenas;
   type->code = code;
   type->header_size = header_size;
-  type->current[0].arena = 0;
-  type->current[1].arena = 0;
-  type->current[0].free = type->current[0].end = 0;
-  type->current[1].free = type->current[1].end = 0;
+  for(int c=0;c<2;c++) {  
+    type->current[c].arena = 0;
+    type->current[c].free = type->current[c].end = 0;
+  }
   type->arena_alloc = arena_alloc;
   type->evacuate = evacuate;
   type->grey_push = grey_push;
@@ -147,7 +147,6 @@ void arena_init(struct arena_header *header,struct arena_type *type,int fromspac
 }
 
 struct arena_header * arena_cons_alloc(struct arenas *arenas,int fromspace) {
-  struct arena_cons_header *arena;
   int data_size,usable_data_size;
   struct arena_current *current;
 
@@ -166,19 +165,20 @@ struct arena_header * arena_cons_alloc(struct arenas *arenas,int fromspace) {
 
 void * arena_ensure_space(struct arena_type *type,size_t bytes,int from,int copy) {
   void *out;
+  struct arena_current *current;
 
   // TODO: not ideal to waste the rest of the arena for a large alloc
-  if(!type->current[from].arena || 
-      type->current[from].free+bytes >= type->current[from].end ) {
-    type->current[from].arena = type->arena_alloc(type->arenas,from);
-    type->current[from].free = (void *)type->current[from].arena + type->header_size; 
-    type->current[from].end = (void *)type->current[from].arena + ARENA_SIZE;
+  current = &(type->current[from]);
+  if(!current->arena || current->free + bytes >= current->end ) {
+    current->arena = type->arena_alloc(type->arenas,from);
+    current->free = (void *)current->arena + type->header_size; 
+    current->end = (void *)current->arena + ARENA_SIZE;
 #if DEBUG
-    printf("tospace arena=%p free=%p end=%p\n",type->to,type->free,type->end);
+    printf("tospace arena=%p free=%p end=%p\n",current->arena,current->free,current->end);
 #endif
   }
-  out = type->current[from].free;
-  type->current[from].free += bytes;
+  out = current->free;
+  current->free += bytes;
 #if STATS
   if(copy)
     type->arenas->bytes_copied += bytes;
@@ -277,7 +277,6 @@ void reg_regrey(struct arenas *arenas,int idx) {
 
 void cons_alloc(struct arenas *arenas,int idx) {
   struct cons * out;
-  struct arena_cons_header *h;
 
   out = (struct cons *)arena_ensure_space(&(arenas->cons_type.common),
                                           sizeof(struct cons),1,0);
