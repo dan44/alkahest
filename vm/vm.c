@@ -241,19 +241,12 @@ struct arenas * arenas_init() {
 }
 
 #if STATS
-void count(char *start,char *end,int val) {
-  char *units = " kMG",*u;
-  for(u=units;*(u+1);u++) {
-    if(val<2048) {
-      break;
-    }
-    val /= 1024;
-  }
-  printf("%s%d%c%s",start,val,*u,end);
-}
-
 void print_gc_stats(struct arenas * arenas) {
-  count("last cycle ","b copied\n",arenas->last_bytes_copied);  
+  char copied_u;
+  int copied_v;
+  
+  byte_count(arenas->last_bytes_copied,&copied_v,&copied_u);
+  printf("last cycle %d%c copied\n",copied_v,copied_u);
 }
 #endif
 
