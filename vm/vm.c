@@ -300,7 +300,7 @@ void cons_alloc(struct arenas *arenas,int idx) {
   out->car.p = out->cdr.p = 0;
   /* Put it in the specified register */
   reg_set_p(arenas,idx,out);
-  //reg_regrey(arenas,idx);  
+  reg_regrey(arenas,idx);  
 }
 
 struct arenas * arenas_init() {
@@ -349,15 +349,14 @@ void arenas_type_destroy(struct arena_type *type,int to) {
 int pull_from_rootset(struct arenas *arenas) {
   void **member;
   
-  member = (void *)queue_pull(&(arenas->rootset));
+  member = (void **)queue_pull(&(arenas->rootset));
   if(!member) {
     return 0;
   }
   if(*member) {
     *member = evacuate(*member);
-    return 1;
   }
-  return 0;
+  return 1;
 }
 
 void populate_rootset(struct arenas *arenas) {
