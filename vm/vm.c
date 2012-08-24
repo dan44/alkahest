@@ -79,13 +79,13 @@ void * queue_pull(struct queue *q) {
 }
 
 #if DEBUG
-void queue_stats(struct queue *q) {
+int queue_size(struct queue *q) {
   int count = 0;
   
   for(struct queue_frame *r=q->head;r;r=r->next) {
     count += r->tail-r->head;
   }
-  printf("queue %p size %d\n",q,count);
+  return count;
 }
 #endif
 
@@ -158,7 +158,7 @@ struct arena_header * arena_cons_alloc(struct arenas *arenas,int fromspace) {
   usable_data_size = HOWMANY(data_size,struct cons)*sizeof(struct cons);
   current->end = (struct cons *)((void *)current->free + usable_data_size);
 #if DEBUG
-  printf("arena=%p free=%p end=%p\n",arena,current->free,current->end);
+  printf("arena=%p free=%p end=%p\n",current->arena,current->free,current->end);
 #endif
   return (struct arena_header *)current->arena;
 }
@@ -436,6 +436,9 @@ void arenas_type_stats(struct arena_type *type) {
 
 void arenas_stats(struct arenas *arenas) {
   arenas_type_stats(&(arenas->cons_type.common));
+#if DEBUG
+  printf("  grey queue size %d\n",queue_size(&(arenas->cons_type.grey)));
+#endif
 }
 #endif
 
