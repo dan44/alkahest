@@ -10,7 +10,7 @@ void o_reg_assign(struct arenas *a,int to,int from) {
   BITSET(a->reg_refs,to,BITGET(a->reg_refs,from));
 }
 
-void o_reg_nil(struct arenas *a,int reg) {
+static inline void o_reg_nil(struct arenas *a,int reg) {
   a->registers[reg].r = 0;
   BITSET(a->reg_refs,reg,1);
 }
@@ -22,22 +22,25 @@ static inline void INVALID_OPCODE(uint32_t x) {
   exit(135);
 }
 
-#define J(x) &&opcode_##x - &&start
-#define NEXT(op) goto *(&&start + jumps[op]);
+#define J(x) &&opcode_##x
+#define NEXT(op) goto *(jumps[op>>24]);
 
 void execute(struct arenas *a,uint32_t *pc) {
-  static int jumps[] = {
+  void * jumps[] = {
 ##jumptable
   };
-  pc--;
-  start:
-    NEXT(*(++pc)>>24);
+  
+  NEXT(*pc);
+
 ##opcode 0x80 /* HALT */
     return;
+
+##opcode 0x81 /* NOP */
+  NEXT(*(++pc));
     
 ##opcode 0xC0 /* REGNIL */
   o_reg_nil(a,OPCODEC_R(*pc));
-  NEXT((*(++pc))>>24);
+  NEXT(*(++pc));
 
 ##opcoderest
 }

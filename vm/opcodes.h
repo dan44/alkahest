@@ -16,6 +16,8 @@
  
 /* Opcodes Format A */
 #define OPCODE_HALT   0x80000000
+#define OPCODE_NOP    0x81000000
+
 
 /* Opcodes Format B */
 #define OPCODE_MVREG  0x00000000
@@ -29,7 +31,6 @@
 #define OPCODEC_R(c) ((c)&0xFF)
 
 void o_reg_assign(struct arenas *,int,int);
-void o_reg_nil(struct arenas *,int);
 void execute(struct arenas *a,uint32_t *code);
 
 #endif
