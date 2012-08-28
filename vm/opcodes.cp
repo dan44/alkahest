@@ -161,7 +161,7 @@ static inline void INVALID_OPCODE(uint32_t x) {
 void execute(struct arenas *a,uint32_t *pc) {  
   int reg,val;
   uint32_t v1,v2,v3;
-  uint32_t *orig_pc = pc; // XXX for debugging
+  //uint32_t *orig_pc = pc; // XXX for debugging
   
   /* Initialize */
   o_reg_im(a,REG_FLAGS,0);
