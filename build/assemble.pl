@@ -39,6 +39,7 @@ my $offset = 0;
 sub convert {
   local $_ = shift;
   my $instr = shift;
+  my $mode = shift;
   
   my $orig = $_;
   my $neg = s/^-//;
@@ -48,7 +49,13 @@ sub convert {
   } elsif(/^[0-9]+/) {
     $val = $_+0;
   } else {
-    die "Bad label '$orig'\n" unless defined $labels{$_};
+    unless(defined $labels{$_}) {
+      if($mode) {
+        die "Bad label '$orig'\n";
+      } else {
+        $val = 0;
+      }
+    }
     my $jump = $labels{$_}-$offset;
     if($instr->{'offset'} =~ /F(-?\d+)/) {
       $jump += $1;
@@ -84,7 +91,7 @@ sub parse {
     my @line = split /\s+/;
     my $instr = $opcodes{shift @line};
     die "Unknown opcode $line[0]" unless defined $instr;
-    @line = map { convert($_,$instr) } @line;
+    @line = map { convert($_,$instr,$mode) } @line;
     my @args;
     my $args = 3-(ord($instr->{'type'})-ord('A'));
     push @args,(shift @line) for (0..$args-1);

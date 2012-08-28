@@ -158,8 +158,14 @@ static inline void INVALID_OPCODE(uint32_t x) {
 #define J(x) &&opcode_##x
 #define NEXT(op) goto *(jumps[C_I(op)]);
 
-void execute(struct arenas *a,uint32_t *pc) {
+void execute(struct arenas *a,uint32_t *pc) {  
   int reg,val;
+  uint32_t v1,v2,v3;
+  uint32_t *orig_pc = pc; // XXX for debugging
+  
+  /* Initialize */
+  o_reg_im(a,REG_FLAGS,0);
+  
   void * jumps[] = {
 ##jumptable
   };
@@ -224,6 +230,64 @@ void execute(struct arenas *a,uint32_t *pc) {
 ##opcode REGCXRREG
   o_regcxrreg(a,C_A(*pc),C_B(*pc),C_C(*pc));
   NEXT(*(++pc));  
+
+##opcode REGISNOTNIL
+  reg = C_C(*pc);
+  val = (int32_t)*(++pc);
+  if(reg_get_p(a,reg)) {
+    pc += val;
+  }
+  NEXT(*(++pc));  
+
+##opcode REGISNIL
+  reg = C_C(*pc);
+  val = (int32_t)*(++pc);
+  if(!reg_get_p(a,reg)) {
+    pc += val;
+  }
+  NEXT(*(++pc));  
+
+##opcode CONS
+  cons_alloc(a,C_C(*pc));
+  NEXT(*(++pc));  
+
+##opcode MVREG
+  o_reg_assign(a,C_B(*pc),C_C(*pc));
+  NEXT(*(++pc));
+
+##opcode CMPREGREGIM
+  v1 = reg_get_im(a,C_B(*pc));
+  v2 = reg_get_im(a,C_C(*pc));
+  v3 = reg_get_im(a,REG_FLAGS);
+  if(v1 == v2) {
+    v3 |= FLAG_ZERO|FLAG_CARRY;
+  } else {
+    v3 &=~ FLAG_ZERO;
+    if(v1 > v2) {
+      v3 |= FLAG_CARRY;
+    } else {
+      v3 &= FLAG_CARRY;
+    }      
+  }
+  reg_set_im(a,REG_FLAGS,v3);
+  NEXT(*(++pc));
+
+##opcode JZ
+  v1 = reg_get_im(a,REG_FLAGS);
+  val = (int32_t)*(++pc);
+  if(v1&FLAG_ZERO) {
+    pc += val;
+  }
+  NEXT(*(++pc));
+
+##opcode JNZ
+  v1 = reg_get_im(a,REG_FLAGS);
+  val = (int32_t)*(++pc);
+  if(!(v1&FLAG_ZERO)) {
+    pc += val;
+  }
+  NEXT(*(++pc));
+
 
 ##opcode invalid
   INVALID_OPCODE(*pc);

@@ -3,6 +3,7 @@
 
 #include "vm.h"
 #include "opcodes.h"
+#include "constest_aa.h"
 
 void add_list(struct arenas *arenas) {
   /* r1 -- current list start & list whose car is matching pair for v; out
@@ -16,43 +17,41 @@ void add_list(struct arenas *arenas) {
     I_REGNIL(5),
     I_HALT,
   };
-  
+
   uint32_t code_frag_a[] = {
-    I_CARSETREG(1,0x00,2),
-    
-    I_REGCXRREG(5,0x02,1),
-    I_CARSETREG(5,0x00,6),
-    
-    I_CDRSETNIL(0x02,1),
-    I_CDRSETNIL(0x00,1),
-    I_REGNIL(2),
-    I_REGNIL(5),
+    I_MVREG(5,2),
+    I_REGCXRREG(2,0x01,2),
     I_HALT,
   };
 
   uint32_t code_frag_f[] = {
-    I_CDRSETREG(5,0x00,1),
+    I_MVREG(1,2),
     I_HALT,
   };
-     
+
+  uint32_t code_frag_g[] = {
+    I_REGCXRREG(7,0x0A,2),
+    I_CMPREGREGIM(7,6),
+    I_JZ(3),
+    I_SETIM(7,1),
+    I_HALT,
+    I_SETIM(7,0),
+    I_HALT,
+  };
+  
   execute(arenas,code_frag_c);
   if(reg_get_p(arenas,1)) {
-    for(o_reg_assign(arenas,2,1);
-        reg_get_p(arenas,2);
-        reg_set_p(arenas,2,CONS_CDR_P((struct cons *)reg_get_p(arenas,2)))) {
-      if(CONS_CAR_I(CONS_CAR_P((struct cons *)reg_get_p(arenas,2))) == reg_get_im(arenas,6)) {
-        o_reg_assign(arenas,1,2);
+    o_reg_assign(arenas,2,1);
+    while(reg_get_p(arenas,2)) {
+      execute(arenas,code_frag_g);
+      if(!reg_get_im(arenas,7)) {          
+        execute(arenas,code_frag_f);
         return;
       }
-      o_reg_assign(arenas,5,2);
+      execute(arenas,code_frag_a);
     }
   }
-  cons_alloc(arenas,1);
-  cons_alloc(arenas,2);
-  if(reg_get_p(arenas,5)) {
-    execute(arenas,code_frag_f);
-  }
-  execute(arenas,code_frag_a);
+  execute(arenas,aa_constest);
 }
 
 void read_word(struct arenas *arenas,char *line) {

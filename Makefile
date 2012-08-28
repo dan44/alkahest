@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-c -Wall -g -std=c99
 LDFLAGS=
-ASSEMBLY=vm/exectest.aa
+ASSEMBLY=vm/exectest.aa vm/constest.aa
 PREHEADERS=vm/opcodes.hp
 PRESOURCES=vm/opcodes.cp
 SOURCES=vm/vm.c vm/constest.c vm/util.c vm/queue.c
@@ -33,5 +33,5 @@ depend: .depend
 
 include .depend
 
-vm/opcodes.cp: vm/opcodes.hp vm/opcodes.dat
+vm/opcodes.cp: vm/opcodes.hp vm/opcodes.dat vm/vm.h
 vm/opcodes.hp: vm/opcodes.dat

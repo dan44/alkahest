@@ -16,6 +16,12 @@
 
 #define NUM_REGISTERS 256
 
+#define REG_OLDPC     255
+#define REG_FLAGS     254
+
+#define FLAG_ZERO     0x00000001
+#define FLAG_CARRY    0x00000002
+
 #define EVACUATIONS_PER_RUN 1000
 
 #define FROMSPACE_MASK 0x00000001
