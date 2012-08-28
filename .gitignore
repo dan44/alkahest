@@ -1,0 +1,4 @@
+*.o
+vm/opcodes.c
+vm/opcodes.h
+.depend
