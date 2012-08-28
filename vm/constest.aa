@@ -1,3 +1,19 @@
+REGNIL 5
+REGISNIL 1 isnil2
+MVREG 2 1
+.loop1
+REGISNIL 2 loop1exit
+REGCXRREG 7 0x0A 2
+CMPREGREGIM 7 6
+JNZ continue
+MVREG 1 2
+J end1
+.continue
+MVREG 5 2
+REGCXRREG 2 0x01 2
+J loop1
+.loop1exit
+.isnil2
 CONS 1
 CONS 2
 REGISNIL 5 isnil1
@@ -10,4 +26,5 @@ CDRSETNIL 0x02 1
 CDRSETNIL 0x00 1
 REGNIL 2
 REGNIL 5
+.end1
 HALT

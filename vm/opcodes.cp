@@ -272,6 +272,11 @@ void execute(struct arenas *a,uint32_t *pc) {
   reg_set_im(a,REG_FLAGS,v3);
   NEXT(*(++pc));
 
+##opcode J
+  val = (int32_t)*(++pc);
+  pc += val;
+  NEXT(*(++pc));
+
 ##opcode JZ
   v1 = reg_get_im(a,REG_FLAGS);
   val = (int32_t)*(++pc);

@@ -12,45 +12,6 @@ void add_list(struct arenas *arenas) {
    * r6 -- value
    * r7 -- scratch
    */
-
-  uint32_t code_frag_c[] = {
-    I_REGNIL(5),
-    I_HALT,
-  };
-
-  uint32_t code_frag_a[] = {
-    I_MVREG(5,2),
-    I_REGCXRREG(2,0x01,2),
-    I_HALT,
-  };
-
-  uint32_t code_frag_f[] = {
-    I_MVREG(1,2),
-    I_HALT,
-  };
-
-  uint32_t code_frag_g[] = {
-    I_REGCXRREG(7,0x0A,2),
-    I_CMPREGREGIM(7,6),
-    I_JZ(3),
-    I_SETIM(7,1),
-    I_HALT,
-    I_SETIM(7,0),
-    I_HALT,
-  };
-  
-  execute(arenas,code_frag_c);
-  if(reg_get_p(arenas,1)) {
-    o_reg_assign(arenas,2,1);
-    while(reg_get_p(arenas,2)) {
-      execute(arenas,code_frag_g);
-      if(!reg_get_im(arenas,7)) {          
-        execute(arenas,code_frag_f);
-        return;
-      }
-      execute(arenas,code_frag_a);
-    }
-  }
   execute(arenas,aa_constest);
 }
 

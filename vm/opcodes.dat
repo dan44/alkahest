@@ -5,6 +5,7 @@ NOP         0x81 D
 ALARM       0x82 D
 JZ          0x83 D V F-2
 JNZ         0x84 D V F-2
+J           0x85 D V F-2
 
 
 REGNIL      0xC0 C
