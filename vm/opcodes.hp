@@ -1,0 +1,25 @@
+#ifndef OPCODES_H
+#define OPCODES_H
+
+#define I_A(n,a,b,c) (((n)<<24)|((a)<<16)|((b)<<8)|(c))
+#define I_B(n,b,c)   I_A(n,0,b,c)
+#define I_C(n,r)     I_A(n,0,0,r)
+#define I_D(n)       I_A(n,0,0,0)
+ 
+/* 0-args */
+##odef HALT     0x80 D
+##odef NOP      0x81 D
+##odef ALARM    0x82 D
+
+/* 1-arg */
+##odef REGNIL   0xC0 C
+##odef SETIM    0xC1 C V
+##odef DJNZ     0xC2 C V
+
+/* 2-args */
+/*##odef MVREG    0x00*/
+
+void o_reg_assign(struct arenas *,int,int);
+void execute(struct arenas *a,uint32_t *code);
+
+#endif

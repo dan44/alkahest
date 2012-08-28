@@ -5,6 +5,8 @@
 #include "util.h"
 #include "opcodes.h"
 
+##readcodes vm/opcodes.hp
+
 void o_reg_assign(struct arenas *a,int to,int from) {
   a->registers[to] = a->registers[from];
   BITSET(a->reg_refs,to,BITGET(a->reg_refs,from));
@@ -28,8 +30,14 @@ static inline void INVALID_OPCODE(uint32_t x) {
   exit(135);
 }
 
+#define C_I(x) ((x)>>24)
+#define C_A(x) (((x)>>16)&0xFF)
+#define C_B(x) (((x)>>8)&0xFF)
+#define C_C(x) ((x)&0xFF)
+
 #define J(x) &&opcode_##x
-#define NEXT(op) goto *(jumps[op>>24]);
+#define NEXT(op) goto *(jumps[C_I(op)]);
+
 
 void execute(struct arenas *a,uint32_t *pc) {
   int reg,val;
@@ -39,27 +47,28 @@ void execute(struct arenas *a,uint32_t *pc) {
   
   NEXT(*pc);
 
-##opcode 0x80 /* HALT */
+##opcode HALT
     return;
 
-##opcode 0x81 /* NOP */
+##opcode NOP
   NEXT(*(++pc));
     
-##opcode 0x82 /* ALARM */
+##opcode ALARM
+  printf("ALARM!\n");
   NEXT(*(++pc));
     
-##opcode 0xC0 /* REGNIL */
-  o_reg_nil(a,OPCODEC_R(*pc));
+##opcode REGNIL
+  o_reg_nil(a,C_C(*pc));
   NEXT(*(++pc));
 
-##opcode 0xC1 /* SETIM */
-  reg = OPCODEC_R(*pc);
+##opcode SETIM
+  reg = C_C(*pc);
   val = *(++pc);
   o_reg_im(a,reg,val);
   NEXT(*(++pc));
 
-##opcode 0xC2 /* DJNZ */
-  reg = OPCODEC_R(*pc);
+##opcode DJNZ
+  reg = C_C(*pc);
   val = (int32_t)*(++pc);
   a->registers[reg].i--;
   if(a->registers[reg].i) {
@@ -67,5 +76,6 @@ void execute(struct arenas *a,uint32_t *pc) {
   }
   NEXT(*(++pc));  
 
-##opcoderest
+##opcode invalid
+  INVALID_OPCODE(*pc);
 }

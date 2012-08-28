@@ -1,6 +1,7 @@
 CC=gcc
 CFLAGS=-c -Wall -O2 -std=c99
 LDFLAGS=
+PREHEADERS=vm/opcodes.hp
 PRESOURCES=vm/opcodes.cp
 SOURCES=vm/vm.c vm/exectest.c vm/util.c vm/queue.c
 EXECUTABLE=vm/vm
@@ -14,5 +15,19 @@ $(EXECUTABLE): $(OBJECTS)
 %.c: %.cp
 	build/preproc.pl < $< > $@
 
+%.h: %.hp
+	build/preproc.pl < $< > $@
+
 clean:
-	rm -f $(EXECUTABLE) $(OBJECTS) $(PRESOURCES:.cp=.c)
+	rm -f $(EXECUTABLE) $(OBJECTS) $(PRESOURCES:.cp=.c) $(PREHEADERS:.hp=.h)
+
+depend: .depend
+
+.depend: $(SOURCES) $(PRESOURCES:.cp=.c) $(PREHEADERS:.hp=.h)
+	rm -f ./.depend
+	$(CC) -MM $^ >> ./.depend
+
+include .depend
+
+opcodes.cp: opcodes.hp
+
