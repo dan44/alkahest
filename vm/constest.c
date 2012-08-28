@@ -4,29 +4,43 @@
 #include "vm.h"
 #include "opcodes.h"
 
-void add_list(struct arenas *arenas,uint32_t v) {
+void add_list(struct arenas *arenas) {
   /* r1 -- current list start & list whose car is matching pair for v; out
    * r2 -- newly allocated pair & current cons pair considered
    * r5 -- previous search position (for extending)
+   * r6 -- value
+   * r7 -- scratch
    */
 
   uint32_t code_frag_c[] = {
-    OPCODEC(OPCODE_REGNIL,5), /* REGNIL 5 */
-    OPCODE_HALT               /* HALT     */
+    I_REGNIL(5),
+    I_HALT,
   };
   
   uint32_t code_frag_a[] = {
-    OPCODEC(OPCODE_REGNIL,2), /* REGNIL 2 */
-    OPCODEC(OPCODE_REGNIL,5), /* REGNIL 5 */
-    OPCODE_HALT               /* HALT     */
+    I_CARSETREG(1,0x00,2),
+    
+    I_REGCXRREG(5,0x02,1),
+    I_CARSETREG(5,0x00,6),
+    
+    I_CDRSETNIL(0x02,1),
+    I_CDRSETNIL(0x00,1),
+    I_REGNIL(2),
+    I_REGNIL(5),
+    I_HALT,
   };
-   
+
+  uint32_t code_frag_f[] = {
+    I_CDRSETREG(5,0x00,1),
+    I_HALT,
+  };
+     
   execute(arenas,code_frag_c);
   if(reg_get_p(arenas,1)) {
     for(o_reg_assign(arenas,2,1);
         reg_get_p(arenas,2);
         reg_set_p(arenas,2,CONS_CDR_P((struct cons *)reg_get_p(arenas,2)))) {
-      if(CONS_CAR_I(CONS_CAR_P((struct cons *)reg_get_p(arenas,2))) == v) {
+      if(CONS_CAR_I(CONS_CAR_P((struct cons *)reg_get_p(arenas,2))) == reg_get_im(arenas,6)) {
         o_reg_assign(arenas,1,2);
         return;
       }
@@ -36,12 +50,8 @@ void add_list(struct arenas *arenas,uint32_t v) {
   cons_alloc(arenas,1);
   cons_alloc(arenas,2);
   if(reg_get_p(arenas,5)) {
-    CONS_CDR_P_SET(reg_get_p(arenas,5),reg_get_p(arenas,1));
+    execute(arenas,code_frag_f);
   }
-  CONS_CAR_P_SET(reg_get_p(arenas,1),reg_get_p(arenas,2));
-  CONS_CAR_I_SET(CONS_CAR_P((struct cons *)reg_get_p(arenas,1)),v);
-  CONS_CDR_P_SET(CONS_CAR_P((struct cons *)reg_get_p(arenas,1)),0);
-  CONS_CDR_P_SET(reg_get_p(arenas,1),0);
   execute(arenas,code_frag_a);
 }
 
@@ -52,29 +62,31 @@ void read_word(struct arenas *arenas,char *line) {
     * r3 -- place r4 is rooted in tree in CDR of pair, or 0 if root
     * r4 -- current linear list of chars (or tail thereof) at this level
     * r5 -- used as scratch in callees
+    * r6 -- passed as val to callees
     */
 
   uint32_t code_frag_b[] = {
-    OPCODEC(OPCODE_REGNIL,3), /* REGNIL 3 */
-    OPCODEC(OPCODE_REGNIL,4), /* REGNIL 4 */
-    OPCODE_HALT               /* HALT     */
+    I_REGNIL(3),
+    I_REGNIL(4),
+    I_HALT,
   };
 
   uint32_t code_frag_d[] = {
-    OPCODEC(OPCODE_REGNIL,3), /* REGNIL 3 */
-    OPCODE_HALT               /* HALT     */
+    I_REGNIL(3),
+    I_HALT,
   };
 
   uint32_t code_frag_e[] = {
-    OPCODEC(OPCODE_REGNIL,1), /* REGNIL 1 */
-    OPCODE_HALT               /* HALT     */
+    I_REGNIL(1),
+    I_HALT,
   };
 
   o_reg_assign(arenas,4,0);
   execute(arenas,code_frag_d);  
   for(char *c=line;*c;c++) {
     o_reg_assign(arenas,1,4);
-    add_list(arenas,(char)*c);
+    o_reg_im(arenas,6,(char)*c);
+    add_list(arenas);
     if(!reg_get_p(arenas,0)) {
       o_reg_assign(arenas,0,1);
     } else if(!reg_get_p(arenas,4)) {

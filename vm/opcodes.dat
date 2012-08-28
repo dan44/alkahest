@@ -1,11 +1,20 @@
 # Opcodes, their code, type and arguments
 
-HALT     0x80 D
-NOP      0x81 D
-ALARM    0x82 D
+HALT      0x80 D
+NOP       0x81 D
+ALARM     0x82 D
 
-REGNIL   0xC0 C
-SETIM    0xC1 C V
-DJNZ     0xC2 C V F-2
+REGNIL    0xC0 C
+SETIM     0xC1 C V
+DJNZ      0xC2 C V F-2
 
-# MVREG    0x00 B
+CARSETNIL 0x40 B
+CDRSETNIL 0x41 B
+CARSETVAL 0x42 B V
+CDRSETVAL 0x43 B V
+
+# MVREG    0x45 B
+
+CARSETREG 0x00 A
+CDRSETREG 0x01 A
+REGCXRREG 0x02 A

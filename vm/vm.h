@@ -107,8 +107,10 @@ void arenas_destroy(struct arenas *);
 void cons_alloc(struct arenas *arenas,int idx);
 
 void reg_set_p(struct arenas *arenas,int idx,void *p);
+void reg_set_im(struct arenas *arenas,int idx,uint32_t v);
 void * reg_get_p(struct arenas *arenas,int idx);
-
+uint32_t reg_get_im(struct arenas *arenas,int idx);
+int reg_isref(struct arenas *a,int idx);
 
 #if STATS
 void print_gc_stats(struct arenas *);
@@ -138,8 +140,18 @@ static inline void * _write_barrier(void *from,void *to) {
 #define CONS_CAR_I(c) (BROOKS(c)->car.i)
 #define CONS_CDR_P(c) (BROOKS(c)->cdr.p)
 #define CONS_CDR_I(c) (BROOKS(c)->cdr.i)
-#define CONS_CAR_I_SET(c,v) do { struct cons * p=BROOKS(c); p->car.i=(v); _BITOP(p,&~,1); } while(0)
-#define CONS_CDR_I_SET(c,v) do { struct cons * p=BROOKS(c); p->cdr.i=(v); _BITOP(p,&~,2); } while(0)
+
+static inline void CONS_CAR_I_SET(struct cons *c,uint32_t v) {
+  struct cons * p=BROOKS(c);
+  p->car.i=(v);
+  _BITOP(p,&~,1);
+}
+
+static inline void CONS_CDR_I_SET(struct cons *c,uint32_t v) {
+  struct cons * p=BROOKS(c);
+  p->cdr.i=(v);
+  _BITOP(p,&~,2);
+}
 
 static inline void CONS_CAR_P_SET(struct cons *c,void *v) {
   c = BROOKS(c);
@@ -155,6 +167,16 @@ static inline void CONS_CDR_P_SET(struct cons *c,void *v) {
     v = _write_barrier(&(c->cdr.p),v);
   c->cdr.p = v;
   _BITOP(c,|,2);
+}
+
+static inline int CONS_CAR_ISREF(struct cons *c) {
+  c = BROOKS(c);
+  return !!(((intptr_t)(c->brooks))&1);
+}
+
+static inline int CONS_CDR_ISREF(struct cons *c) {
+  c = BROOKS(c);
+  return !!(((intptr_t)(c->brooks))&2);
 }
 
 #endif

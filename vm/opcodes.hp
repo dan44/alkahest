@@ -9,6 +9,7 @@
 ##defcodes vm/opcodes.dat
 
 void o_reg_assign(struct arenas *,int,int);
+void o_reg_im(struct arenas *a,int reg,uint32_t val);
 void execute(struct arenas *a,uint32_t *code);
 
 #endif
