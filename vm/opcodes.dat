@@ -2,15 +2,12 @@
 
 HALT        0x80 D
 NOP         0x81 D
-ALARM       0x82 D
 JZ          0x83 D V F-2
 JNZ         0x84 D V F-2
 J           0x85 D V F-2
 
-
 REGNIL      0xC0 C
 SETIM       0xC1 C V
-DJNZ        0xC2 C V F-2
 REGISNOTNIL 0xC3 C V F-2
 REGISNIL    0xC4 C V F-2
 CONS        0xC5 C
@@ -25,3 +22,8 @@ CMPREGREGIM 0x45 B
 CARSETREG   0x00 A
 CDRSETREG   0x01 A
 REGCXRREG   0x02 A
+
+# Weird doomed opcodes used during development
+
+ALARM       0x82 D
+DJNZ        0xC2 C V F-2
