@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-c -Wall -O2 -std=c99
 LDFLAGS=
 PRESOURCES=vm/opcodes.cp
-SOURCES=vm/vm.c vm/constest.c vm/util.c vm/queue.c
+SOURCES=vm/vm.c vm/exectest.c vm/util.c vm/queue.c
 EXECUTABLE=vm/vm
 OBJECTS=$(SOURCES:.c=.o) $(PRESOURCES:.cp=.o) 
 

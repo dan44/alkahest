@@ -27,6 +27,8 @@
 /* Opcodes Format C */
 #define OPCODE_REGNIL 0xC0000000
 
+#define OPCODE_SETIM  0xC1000000
+
 #define OPCODEC(c,r) ((c)|(r))
 #define OPCODEC_R(c) ((c)&0xFF)
 
