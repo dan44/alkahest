@@ -1,4 +1,4 @@
-# Opcodes, thier code, type and arguments
+# Opcodes, their code, type and arguments
 
 HALT     0x80 D
 NOP      0x81 D
@@ -6,6 +6,6 @@ ALARM    0x82 D
 
 REGNIL   0xC0 C
 SETIM    0xC1 C V
-DJNZ     0xC2 C V
+DJNZ     0xC2 C V F
 
 # MVREG    0x00 B

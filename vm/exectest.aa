@@ -1,0 +1,6 @@
+# raw speed test for vm
+
+SETIM 1 0x40000000
+NOP
+DJNZ 1 0xFFFFFFFD
+HALT

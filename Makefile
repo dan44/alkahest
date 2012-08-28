@@ -1,6 +1,7 @@
 CC=gcc
 CFLAGS=-c -Wall -O2 -std=c99
 LDFLAGS=
+ASSEMBLY=vm/exectest.aa
 PREHEADERS=vm/opcodes.hp
 PRESOURCES=vm/opcodes.cp
 SOURCES=vm/vm.c vm/exectest.c vm/util.c vm/queue.c
@@ -18,12 +19,15 @@ $(EXECUTABLE): $(OBJECTS)
 %.h: %.hp
 	build/preproc.pl < $< > $@
 
+%_aa.h: %.aa
+	build/assemble.pl $< > $@
+
 clean:
-	rm -f $(EXECUTABLE) $(OBJECTS) $(PRESOURCES:.cp=.c) $(PREHEADERS:.hp=.h)
+	rm -f $(EXECUTABLE) $(OBJECTS) $(PRESOURCES:.cp=.c) $(PREHEADERS:.hp=.h)  $(patsubst %.aa,%_aa.h,$(ASSEMBLY))
 
 depend: .depend
 
-.depend: $(SOURCES) $(PRESOURCES:.cp=.c) $(PREHEADERS:.hp=.h)
+.depend: $(SOURCES) $(PRESOURCES:.cp=.c) $(PREHEADERS:.hp=.h) $(patsubst %.aa,%_aa.h,$(ASSEMBLY))
 	rm -f ./.depend
 	$(CC) -MM $^ >> ./.depend
 
