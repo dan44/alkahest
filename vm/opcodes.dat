@@ -6,6 +6,6 @@ ALARM    0x82 D
 
 REGNIL   0xC0 C
 SETIM    0xC1 C V
-DJNZ     0xC2 C V F
+DJNZ     0xC2 C V F-2
 
 # MVREG    0x00 B

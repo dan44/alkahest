@@ -1,6 +1,7 @@
 # raw speed test for vm
 
 SETIM 1 0x40000000
+.label
 NOP
-DJNZ 1 -3
+DJNZ 1 label
 HALT
