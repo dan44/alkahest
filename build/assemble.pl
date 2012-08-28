@@ -78,10 +78,10 @@ sub parse {
   open(INFILE,$filename) || die "Cannot read '$filename'\n";
   while(<INFILE>) {
     my @outline;
-    next if(/^\s*$/ or /^\s*#/);
+    next if(/^\s*$/ or /^\s*;/);
     s/^\s+//;
     s/\s+$//;
-    s/#.*$//;
+    s/;.*$//;
     if(/^\.(.*)/) {
       $labels{$1} = $offset unless $mode;
       $label .= "$_ ";
@@ -90,7 +90,7 @@ sub parse {
     my $line = $_;
     my @line = split /\s+/;
     my $instr = $opcodes{shift @line};
-    die "Unknown opcode $line[0]" unless defined $instr;
+    die "Unknown opcode '$line[0]' in $line" unless defined $instr;
     @line = map { convert($_,$instr,$mode) } @line;
     my @args;
     my $args = 3-(ord($instr->{'type'})-ord('A'));
