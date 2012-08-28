@@ -32,29 +32,29 @@ void read_word(struct arenas *arenas,char *line) {
   };
 
   uint32_t code_frag_d[] = {
+    I_MVREG(4,0),
     I_REGNIL(3),
     I_HALT,
   };
 
-  uint32_t code_frag_e[] = {
+  uint32_t code_frag_f[] = {
+    I_REGISNOTNIL(0,3),
+    I_MVREG(0,1),
+    I_J(3),
+    I_REGISNOTNIL(4,1),
+    I_CDRSETREG(3,0x00,1),
+    I_REGCXRREG(3,0x02,1),
+    I_REGCXRREG(4,0x01,3),
     I_REGNIL(1),
     I_HALT,
   };
 
-  o_reg_assign(arenas,4,0);
   execute(arenas,code_frag_d);  
   for(char *c=line;*c;c++) {
     o_reg_assign(arenas,1,4);
     o_reg_im(arenas,6,(char)*c);
     add_list(arenas);
-    if(!reg_get_p(arenas,0)) {
-      o_reg_assign(arenas,0,1);
-    } else if(!reg_get_p(arenas,4)) {
-      CONS_CDR_P_SET(reg_get_p(arenas,3),reg_get_p(arenas,1));
-    }
-    reg_set_p(arenas,3,CONS_CAR_P((struct cons *)reg_get_p(arenas,1)));
-    reg_set_p(arenas,4,CONS_CDR_P((struct cons *)reg_get_p(arenas,3)));
-    execute(arenas,code_frag_e);  
+    execute(arenas,code_frag_f);  
   }
   execute(arenas,code_frag_b);
 }
