@@ -29,5 +29,5 @@ depend: .depend
 
 include .depend
 
-opcodes.cp: opcodes.hp
-
+vm/opcodes.cp: vm/opcodes.hp vm/opcodes.dat
+vm/opcodes.hp: vm/opcodes.dat

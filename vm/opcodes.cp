@@ -5,7 +5,7 @@
 #include "util.h"
 #include "opcodes.h"
 
-##readcodes vm/opcodes.hp
+##readcodes vm/opcodes.dat
 
 void o_reg_assign(struct arenas *a,int to,int from) {
   a->registers[to] = a->registers[from];
@@ -37,7 +37,6 @@ static inline void INVALID_OPCODE(uint32_t x) {
 
 #define J(x) &&opcode_##x
 #define NEXT(op) goto *(jumps[C_I(op)]);
-
 
 void execute(struct arenas *a,uint32_t *pc) {
   int reg,val;
