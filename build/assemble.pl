@@ -36,12 +36,20 @@ sub convert {
   local $_ = shift;
   
   my $orig = $_;
+  my $neg = s/^-//;
+  my $val = 0;
   if(s/^0x//) {
-    return hex $_;
-  } elsif(/^-?[0-9]+/) {
-    return $_+0;
+    $val = hex $_;
+  } elsif(/^[0-9]+/) {
+    $val = $_+0;
+  } else {
+    die "Bad argument '$orig'\n";
   }
-  die "Bad argument '$orig'\n";
+  if($neg) {
+    $val--;
+    $val ^= 0xFFFFFFFF;
+  }
+  return $val;
 }
 
 my @output;
