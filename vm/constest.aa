@@ -1,64 +1,85 @@
+;; build binary tree from words passed in cons cells
+
+; tree is list of pairs at each level
+; IN      r0 tree in and out
+;         r8 word list in
+; OUT
+; SCRATCH REFERENCE r1 r3 r4  | r2 r5
+;         IMMEDIATE r6 r9     | r7
+;
+; r0 -- tree root, in and out. nil is empty tree
+; r1 -- list to examine / matching position
+; r3 -- the pair rooting this list, if any; nil if root
+; r4 -- current list
+; r6 -- character to add in add_list
+; r8 -- word list, in. Updated as characters added till nil.
+; r9 -- pc stack for call to add_list
+
 .read_word
     ld r4,r0
     ld r3,*0
-.loop2
-    cmpr r8,*0
-    jz loop2exit
-    ld r1,r4
-    car r6,r8
-    call r9,add_list
+.nextchar
+    cmpr r8,*0         ; are there more chars?
+    jz nomorechars
+    ld r1,r4           ; arg to add_list: current list
+    car r6,r8          ; arg to add_list: head of pair
+    call r9,add_list   ; call add_list
     cmpr r0,*0
-    jnz isnil3
-    ld r0,r1
-    jr notnil3
-.isnil3
-    cmpr r4,*0
-    jnz notnil4
-    cdwr r3,r1
-.notnil3
-.notnil4
-    car r3,r1
-    cdr r4,r3
-    ld r1,*0
-    cdr r8,r8
-    jr loop2
-.loop2exit
-    ld r3,*0
-    ld r4,*0
+    jnz notniltreein
+    ld r0,r1           ; if tree was nil, set it to what was just returned
+    jr advancechar
+.notniltreein
+    cmpr r4,*0         ; did pair have existing list?
+    jnz advancechar
+    cdwr r3,r1         ; pair had no existing list: set to output
+.advancechar
+    car r3,r1          ; get pair corresponding to match
+    cdr r4,r3          ; get list of pair
+    cdr r8,r8          ; move along input list
+    jr nextchar
+.nomorechars
     halt
+
+; add char to this list. Fly along list looking for matching char, if none
+; present, add one to the end.
+; IN      r1 head of list
+;         r9 return point
+; OUT     r1 matching position on list
+; SCRATCH IMMEDIATE r6 r7
+;         REFERENCE r2 r5
+;
+; r1 -- current position on list
+; r2 -- new pair cell
+; r5 -- previous poisition of r1 (for extending when it gets to nil)
+; r6 -- char value in
+; r7 -- current value of char in current list pos
+; r9 -- pc stack for call to add_list
 
 ; add_list
 .add_list
     ld r5,*0
     cmpr r1,*0
-    jz isnil2
-    ld r2,r1
-.loop1
-    cmpr r2,*0
-    jz loop1exit
-    caar r7,r2
+    jz nomatch      ; r1 is nil, ie no list to search
+.listloop
+    cmpr r1,*0
+    jz nomatch      ; reached end of list
+    caar r7,r1      ; compare values
     cmpi r7,r6
-    jnz continue
-    ld r1,r2
-    jr end1
-.continue
-    ld r5,r2
-    cdr r2,r2
-    jr loop1
-.loop1exit
-.isnil2
+    jnz nomatchhere
+    ret r9          ; match, return
+.nomatchhere
+    ld r5,r1        ; advance r1, r5
+    cdr r1,r1
+    jr listloop
+.nomatch            ; needs new list member and pair
     ld r1,^cons
     ld r2,^cons
-    cmpr r5,*0
-    jz isnil1
-    cdwr r5,r1
-.isnil1
-    cawr r1,r2
-    car r5,r1
-    cawr r5,r6
-    cdwar r1,*0
-    cdwr r1,*0
-    ld r2,*0
-    ld r5,*0
-.end1
+    cmpr r5,*0      ; list was empty, already in r1
+    jz emptylist
+    cdwr r5,r1      ; add our cell to the end of the list
+.emptylist
+    cawr r1,r2      ; pair is head of list member
+    cawr r2,r6      ; pair head is value
+    cdwar r1,*0     ; pair tail is nil (for now!)
+    cdwr r1,*0      ; list tail is nil (for now!)
     ret r9

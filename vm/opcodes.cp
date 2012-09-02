@@ -162,7 +162,7 @@ void execute(struct arenas *a,uint32_t *pc) {
   int reg,val;
   uint32_t v1,v2,v3;
   intptr_t p1;
-  uint32_t *orig_pc = pc; // XXX for debugging
+  //uint32_t *orig_pc = pc; // XXX for debugging
   
   /* Initialize */
   o_reg_im(a,REG_FLAGS,0);
