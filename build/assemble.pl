@@ -95,7 +95,7 @@ sub type_reg {
 
 sub type_label {
   local $_ = shift;
-  return $_ if /^[A-Za-z0-9]+$/;
+  return $_ if /^[A-Za-z0-9_]+$/;
   return undef;
 }
 
@@ -158,6 +158,7 @@ sub parse {
       $repl =~ s/\&/$ad/ge;
       next if grep { !defined $_ } @cand;
       $line = trim $repl;
+      #print STDERR "LINE '$line'\n";
       last;
     }
     my @line = split /\s+/,$line;
