@@ -1,4 +1,4 @@
-# Opcodes, their code, type and arguments
+; Opcodes, their code, type and arguments
 
 HALT        0x80 D
 NOP         0x81 D
@@ -23,7 +23,7 @@ CARSETREG   0x00 A
 CDRSETREG   0x01 A
 REGCXRREG   0x02 A
 
-# Weird doomed opcodes used during development
+; Weird doomed opcodes used during development
 
 ALARM       0x82 D
 DJNZ        0xC2 C V F-2

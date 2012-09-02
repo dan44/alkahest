@@ -1,30 +1,32 @@
-REGNIL 5
-REGISNIL 1 isnil2
-MVREG 2 1
+; add_list
+.add_list
+    ld r5,*0
+    REGISNIL 1 isnil2
+    ld r2,r1
 .loop1
-REGISNIL 2 loop1exit
-REGCXRREG 7 0x0A 2
-CMPREGREGIM 7 6
-JNZ continue
-MVREG 1 2
-J end1
+    REGISNIL 2 loop1exit
+    caar r7,r2
+    cmpi r7,r6
+    jnz continue
+    ld r1,r2
+    jr end1
 .continue
-MVREG 5 2
-REGCXRREG 2 0x01 2
-J loop1
+    ld r5,r2
+    cdr r2,r2
+    jr loop1
 .loop1exit
 .isnil2
-CONS 1
-CONS 2
-REGISNIL 5 isnil1
-CDRSETREG 5 0x00 1
+    ld r1,^cons
+    ld r2,^cons
+    REGISNIL 5 isnil1
+    cdwr r5,r1
 .isnil1
-CARSETREG 1 0x00 2
-REGCXRREG 5 0x02 1
-CARSETREG 5 0x00 6
-CDRSETNIL 0x02 1
-CDRSETNIL 0x00 1
-REGNIL 2
-REGNIL 5
+    cawr r1,r2
+    car r5,r1
+    cawr r5,r6
+    cdwar r1,*0
+    cdwr r1,*0
+    ld r2,*0
+    ld r5,*0
 .end1
-HALT
+    halt

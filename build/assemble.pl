@@ -16,7 +16,7 @@ sub dehex {
 
 open(DATAFILE,"vm/opcodes.dat") || die "Cannot read opcodes.dat";
 while(<DATAFILE>) {
-  next if(/^\s*$/ or /^\s*#/);
+  next if(/^\s*$/ or /^\s*;/);
   my @line = split /\s+/;
   $opcodes{$line[0]} = {
     code => dehex($line[1]),
@@ -24,6 +24,16 @@ while(<DATAFILE>) {
     extra => $line[3],
     offset => $line[4],
   };
+}
+close DATAFILE;
+
+my %instr;
+
+open(DATAFILE,"vm/instr.dat") || die "Cannot read instr.dat";
+while(<DATAFILE>) {
+  next if(/^\s*$/ or /^\s*;/);
+  /^(.*?)\s+\-\>\s+(.*?)$/;
+  $instr{$1}=$2;
 }
 close DATAFILE;
 
@@ -70,6 +80,25 @@ sub convert {
   return $val;
 }
 
+sub trim {
+  local $_ = shift;
+  s/^\s+//;
+  s/\s+$//;
+  return $_;
+}
+
+sub type_reg {
+  local $_ = shift;
+  return $1 if /^r(\d+)$/;
+  return undef;
+}
+
+sub type_label {
+  local $_ = shift;
+  return $_ if /^[A-Za-z0-9]+$/;
+  return undef;
+}
+
 sub parse {
   my ($mode) = @_;
 
@@ -79,8 +108,7 @@ sub parse {
   while(<INFILE>) {
     my @outline;
     next if(/^\s*$/ or /^\s*;/);
-    s/^\s+//;
-    s/\s+$//;
+    $_ = trim $_;
     s/;.*$//;
     if(/^\.(.*)/) {
       $labels{$1} = $offset unless $mode;
@@ -88,7 +116,51 @@ sub parse {
       next;
     }
     my $line = $_;
-    my @line = split /\s+/;
+    my $orig_line = $line;
+    $line =~ /^\s*(\S+)(\s+(.*?))?\s*$/;
+    my ($ins,$rest) = ($1,$2);
+    my @repl;
+    foreach my $tmpl (keys %instr) {
+      my @cand;
+      my @tmpl = split /\s+/,trim($tmpl);
+      my $bins = $ins;
+      my $ad = 0;
+      # Handle AD's in &'s
+      my $ti = shift @tmpl;
+      if($ti =~ /^(.*?)\&(.*?)$/) {
+        my ($a,$b) = ($1,$2);
+        next unless($ins =~ /$a([adAD]*)$b/);
+        $bins = "$a\&$b";
+        my @ad = split(//,$1);
+        while((my $v = lc shift @ad)) {
+          $ad = ($ad*4)+(($v eq 'a')?2:1);
+        }
+      }
+      #
+      next unless $ti eq $bins;
+      push @cand,$bins;
+      my @args = split /,/,$rest;
+      foreach my $tmpl_arg (@tmpl) {
+        my $real_arg = trim(shift @args);
+        if($tmpl_arg =~ /\[(.*?)\]/) {
+          no strict;
+          push @cand,&{"type_$1"}($real_arg);
+        } else {
+          my $v;
+          $v = $real_arg if($real_arg eq $tmpl_arg);
+          push @cand,$v;
+        }
+      }
+      my $repl = $instr{$tmpl};
+      foreach my $i (0..$#cand) {
+        $repl =~ s/\$$i/$cand[$i]/ge;
+      }
+      $repl =~ s/\&/$ad/ge;
+      next if grep { !defined $_ } @cand;
+      $line = trim $repl;
+      last;
+    }
+    my @line = split /\s+/,$line;
     my $instr = $opcodes{shift @line};
     die "Unknown opcode '$line[0]' in $line" unless defined $instr;
     @line = map { convert($_,$instr,$mode) } @line;
@@ -101,7 +173,7 @@ sub parse {
       push @outline,(shift @line);
     }
     if($mode) {
-      push @output,[\@outline,"$label$line"];
+      push @output,[\@outline,"$label${orig_line} [$line]"];
     } else {
       push @offset,length(@outline);
     }

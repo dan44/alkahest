@@ -26,7 +26,7 @@ sub instr_defcodes {
   my @args = split(/\s+/,shift);
   open(CODES,$args[0]) || die "Cannot read '$args[0]'\n";
   while(<CODES>) {
-    next if(/^\s*$/ or /^\s*#/);
+    next if(/^\s*$/ or /^\s*;/);
     my @args = split(/\s+/,$_);
     my $hex = $args[1];
     $hex =~ s/^0x//;
@@ -53,7 +53,7 @@ sub instr_readcodes {
   my @args = split(/\s+/,shift);
   open(CODES,$args[0]) || die "Cannot read '$args[0]'\n";
   while(<CODES>) {
-    next if(/^\s*$/ or /^\s*#/);
+    next if(/^\s*$/ or /^\s*;/);
     my @args = split(/\s+/,$_);
     my $hex = $args[1];
     $hex =~ s/^0x//;

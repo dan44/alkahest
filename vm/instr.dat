@@ -1,0 +1,12 @@
+ld [reg] [reg]       ->     MVREG $1 $2
+ld [reg] *0          ->     REGNIL $1
+halt                 ->     HALT
+jr [label]           ->     J $1
+jnz [label]          ->     JNZ $1
+ld [reg] ^cons       ->     CONS $1
+caw&r [reg] *0       ->     CARSETNIL & $1
+cdw&r [reg] *0       ->     CDRSETNIL & $1
+caw&r [reg] [reg]    ->     CARSETREG $1 & $2
+cdw&r [reg] [reg]    ->     CDRSETREG $1 & $2
+c&r [reg] [reg]      ->     REGCXRREG $1 & $2
+cmpi [reg] [reg]     ->     CMPREGREGIM $1 $2
