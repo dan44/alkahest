@@ -161,7 +161,8 @@ static inline void INVALID_OPCODE(uint32_t x) {
 void execute(struct arenas *a,uint32_t *pc) {  
   int reg,val;
   uint32_t v1,v2,v3;
-  //uint32_t *orig_pc = pc; // XXX for debugging
+  intptr_t p1;
+  uint32_t *orig_pc = pc; // XXX for debugging
   
   /* Initialize */
   o_reg_im(a,REG_FLAGS,0);
@@ -304,6 +305,16 @@ void execute(struct arenas *a,uint32_t *pc) {
   }
   NEXT(*(++pc));
 
+##opcode CALL
+  reg = C_C(*(pc++));
+  p1 = (intptr_t)(pc + *pc + 1);
+  reg_set_im(a,reg,(intptr_t)++pc);
+  pc = (uint32_t *)p1;
+  NEXT(*pc);
+
+##opcode RET
+  pc = (uint32_t *)reg_get_im(a,C_C(*pc));
+  NEXT(*pc);  
 
 ##opcode invalid
   INVALID_OPCODE(*pc);

@@ -23,6 +23,7 @@ void word_to_list(struct arenas *a,char *line) {
   }
 }
 
+#if 0
 void add_list(struct arenas *arenas) {
   /* r1 -- current list start & list whose car is matching pair for v; out
    * r2 -- newly allocated pair & current cons pair considered
@@ -84,6 +85,12 @@ void read_word(struct arenas *arenas,char *line) {
     execute(arenas,code_frag_f);
   }
   execute(arenas,code_frag_b);
+}
+#endif
+
+void read_word(struct arenas *arenas,char *line) {
+  word_to_list(arenas,line);
+  execute(arenas,aa_constest);
 }
 
 struct cons * read_words(struct arenas *arenas) {

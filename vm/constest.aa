@@ -1,3 +1,32 @@
+.read_word
+    ld r4,r0
+    ld r3,*0
+.loop2
+    cmpr r8,*0
+    jz loop2exit
+    ld r1,r4
+    car r6,r8
+    call r9,add_list
+    cmpr r0,*0
+    jnz isnil3
+    ld r0,r1
+    jr notnil3
+.isnil3
+    cmpr r4,*0
+    jnz notnil4
+    cdwr r3,r1
+.notnil3
+.notnil4
+    car r3,r1
+    cdr r4,r3
+    ld r1,*0
+    cdr r8,r8
+    jr loop2
+.loop2exit
+    ld r3,*0
+    ld r4,*0
+    halt
+
 ; add_list
 .add_list
     ld r5,*0
@@ -32,4 +61,4 @@
     ld r2,*0
     ld r5,*0
 .end1
-    halt
+    ret r9

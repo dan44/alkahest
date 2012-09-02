@@ -239,7 +239,7 @@ void * reg_get_p(struct arenas *arenas,int idx) {
   return arenas->registers[idx].r;
 }
 
-uint32_t reg_get_im(struct arenas *arenas,int idx) {
+intptr_t reg_get_im(struct arenas *arenas,int idx) {
   return arenas->registers[idx].i;
 }
 

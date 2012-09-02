@@ -115,7 +115,7 @@ void cons_alloc(struct arenas *arenas,int idx);
 void reg_set_p(struct arenas *arenas,int idx,void *p);
 void reg_set_im(struct arenas *arenas,int idx,uint32_t v);
 void * reg_get_p(struct arenas *arenas,int idx);
-uint32_t reg_get_im(struct arenas *arenas,int idx);
+intptr_t reg_get_im(struct arenas *arenas,int idx);
 int reg_isref(struct arenas *a,int idx);
 
 #if STATS

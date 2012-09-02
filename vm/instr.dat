@@ -12,3 +12,5 @@ cdw&r [reg] [reg]    ->     CDRSETREG $1 & $2
 c&r [reg] [reg]      ->     REGCXRREG $1 & $2
 cmpi [reg] [reg]     ->     CMPREGREGIM $1 $2
 cmpr [reg] *0        ->     CMPREGNIL $1
+call [reg] [label]   ->     CALL $1 $2
+ret [reg]            ->     RET $1

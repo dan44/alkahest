@@ -10,6 +10,8 @@ REGNIL      0xC0 C
 SETIM       0xC1 C V
 CONS        0xC5 C
 CMPREGNIL   0xC6 C
+CALL        0xC7 C V F-2
+RET         0xC8 C
 
 CARSETNIL   0x40 B
 CDRSETNIL   0x41 B
