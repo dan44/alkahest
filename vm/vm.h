@@ -97,10 +97,11 @@ union value {
 
 struct arenas {
   struct arena_cons_type cons_type;
-  struct queue rootset,scavange;
+  struct queue scavange;
   int flags;
   union value registers[NUM_REGISTERS];
   uint32_t reg_refs[NUM_REGISTERS/BITEL_BITS];
+  uint32_t reg_grey[NUM_REGISTERS/BITEL_BITS];
 #if STATS
   uint32_t bytes_copied,last_bytes_copied;
 #endif

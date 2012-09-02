@@ -169,9 +169,31 @@ void ** type_grey_pull(struct arena_type *type) {
   return type->grey_pull(type);
 }
 
+void ** reg_grey_pull(struct arenas *a) {
+  for(int i=0;i<NUM_REGISTERS/BITEL_BITS;i++) {
+    if(a->reg_grey[i]) {
+      for(int j=0;j<BITEL_BITS;j++) {
+        if(a->reg_grey[i]&(1<<j)) {
+          a->reg_grey[i] &= ~(1<<j);
+          return &(a->registers[i*BITEL_BITS+j].r);
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 void * grey_pull(struct arenas *arenas) {
   void *out;
   out = type_grey_pull(&(arenas->cons_type.common));
+  if(out) { return out; }
+  return 0;
+}
+
+void ** rootset_pull(struct arenas *a) {
+  void ** out;
+  
+  out = reg_grey_pull(a);
   if(out) { return out; }
   return 0;
 }
@@ -202,11 +224,15 @@ void arenas_cons_init(struct arenas *arenas,struct arena_cons_type *type) {
 void reg_set_p(struct arenas *arenas,int idx,void *p) {
   arenas->registers[idx].r = p;
   arenas->reg_refs[idx/BITEL_BITS] |= 1<<(idx&(BITEL_BITS-1));
+  if(arenas->flags & FLAG_INGC)
+    arenas->reg_grey[idx/BITEL_BITS] |= 1<<(idx&(BITEL_BITS-1));
 }
 
 void reg_set_im(struct arenas *arenas,int idx,uint32_t v) {
   arenas->registers[idx].i = v;
   arenas->reg_refs[idx/BITEL_BITS] &=~ (1<<(idx&(BITEL_BITS-1)));
+  if(arenas->flags & FLAG_INGC)
+    arenas->reg_grey[idx/BITEL_BITS] &=~ (1<<(idx&(BITEL_BITS-1)));
 }
 
 void * reg_get_p(struct arenas *arenas,int idx) {
@@ -221,9 +247,8 @@ int reg_isref(struct arenas *a,int idx) {
   return !!(a->reg_refs[idx/BITEL_BITS] & (1<<(idx&(BITEL_BITS-1))));
 }
 
-void reg_regrey(struct arenas *arenas,int idx) {
-  // XXX detect and only push if not currently there
-  queue_push(&(arenas->rootset),&(arenas->registers[idx].r));
+void reg_regrey(struct arenas *a,int idx) {  
+  a->reg_grey[idx/BITEL_BITS] |= 1<<(idx&(BITEL_BITS-1));
 }
 
 void cons_alloc(struct arenas *arenas,int idx) {
@@ -234,7 +259,8 @@ void cons_alloc(struct arenas *arenas,int idx) {
                              sizeof(struct cons),
                              arenas->flags&FLAG_INGC,0);
   out->brooks = out;
-  out->car.p = out->cdr.p = 0;
+  CONS_CAR_P_SET(out,0);
+  CONS_CDR_P_SET(out,0);
   /* Put it in the specified register */
   reg_set_p(arenas,idx,out);
   reg_regrey(arenas,idx);
@@ -245,10 +271,10 @@ struct arenas * arenas_init() {
   arenas = malloc(sizeof(struct arenas));
   arenas->flags = 0;
   arenas_cons_init(arenas,&(arenas->cons_type));
-  queue_init(&(arenas->rootset));
   queue_init(&(arenas->scavange));
   for(int i=0;i<NUM_REGISTERS/BITEL_BITS;i++) {
     arenas->reg_refs[i] = 0;
+    arenas->reg_grey[i] = 0;
   }
 #if STATS
   arenas->bytes_copied = 0;
@@ -279,7 +305,7 @@ void arenas_type_destroy(struct arena_type *type,int to) {
 int pull_from_rootset(struct arenas *arenas) {
   void **member;
   
-  member = (void **)queue_pull(&(arenas->rootset));
+  member = (void **)rootset_pull(arenas);
   if(!member) {
     return 0;
   }
@@ -291,10 +317,8 @@ int pull_from_rootset(struct arenas *arenas) {
 
 void populate_rootset(struct arenas *arenas) {
   /* Registers */
-  for(int i=0;i<NUM_REGISTERS;i++) {
-    if(arenas->reg_refs[i/BITEL_BITS] & (1<<(i&(BITEL_BITS-1)))) {
-      queue_push(&(arenas->rootset),&(arenas->registers[i].r));
-    }
+  for(int i=0;i<NUM_REGISTERS/BITEL_BITS;i++) {
+    arenas->reg_grey[i] = arenas->reg_refs[i];
   }
 }
 
@@ -363,7 +387,6 @@ void arenas_cons_destroy(struct arena_cons_type *type) {
 }
 
 void arenas_destroy(struct arenas *arenas) {
-  queue_destroy(&(arenas->rootset));
   arenas_cons_destroy(&(arenas->cons_type));
   free(arenas);
 }
