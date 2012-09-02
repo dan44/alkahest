@@ -110,7 +110,7 @@ sub parse {
     next if(/^\s*$/ or /^\s*;/);
     $_ = trim $_;
     s/;.*$//;
-    if(/^\.(.*)/) {
+    if(/^\.(\S+)/) {
       $labels{$1} = $offset unless $mode;
       $label .= "$_ ";
       next;
