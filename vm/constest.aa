@@ -1,10 +1,12 @@
 ; add_list
 .add_list
     ld r5,*0
-    REGISNIL 1 isnil2
+    cmpr r1,*0
+    jz isnil2
     ld r2,r1
 .loop1
-    REGISNIL 2 loop1exit
+    cmpr r2,*0
+    jz loop1exit
     caar r7,r2
     cmpi r7,r6
     jnz continue
@@ -18,7 +20,8 @@
 .isnil2
     ld r1,^cons
     ld r2,^cons
-    REGISNIL 5 isnil1
+    cmpr r5,*0
+    jz isnil1
     cdwr r5,r1
 .isnil1
     cawr r1,r2

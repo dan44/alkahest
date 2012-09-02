@@ -247,6 +247,17 @@ void execute(struct arenas *a,uint32_t *pc) {
   }
   NEXT(*(++pc));  
 
+##opcode CMPREGNIL
+  v1 = reg_get_im(a,C_C(*pc));
+  v3 = reg_get_im(a,REG_FLAGS);
+  if(v1) {
+    v3 &=~ (FLAG_ZERO|FLAG_CARRY);
+  } else {
+    v3 |= FLAG_ZERO|FLAG_CARRY;
+  }
+  reg_set_im(a,REG_FLAGS,v3);  
+  NEXT(*(++pc));  
+
 ##opcode CONS
   cons_alloc(a,C_C(*pc));
   NEXT(*(++pc));  
