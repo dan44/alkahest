@@ -232,22 +232,6 @@ void execute(struct arenas *a,uint32_t *pc) {
   o_regcxrreg(a,C_A(*pc),C_B(*pc),C_C(*pc));
   NEXT(*(++pc));  
 
-##opcode REGISNOTNIL
-  reg = C_C(*pc);
-  val = (int32_t)*(++pc);
-  if(reg_get_p(a,reg)) {
-    pc += val;
-  }
-  NEXT(*(++pc));  
-
-##opcode REGISNIL
-  reg = C_C(*pc);
-  val = (int32_t)*(++pc);
-  if(!reg_get_p(a,reg)) {
-    pc += val;
-  }
-  NEXT(*(++pc));  
-
 ##opcode CMPREGNIL
   v1 = reg_get_im(a,C_C(*pc));
   v3 = reg_get_im(a,REG_FLAGS);
