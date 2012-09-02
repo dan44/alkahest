@@ -5,6 +5,24 @@
 #include "opcodes.h"
 #include "constest_aa.h"
 
+void word_to_list(struct arenas *a,char *line) {
+  /* r8 -- result
+   * r5,r7 -- scratch
+   */
+  for(char *c=line;*c;c++) {
+    cons_alloc(a,7);
+    CONS_CAR_I_SET(reg_get_p(a,7),(uint32_t)*c);
+    CONS_CDR_P_SET(reg_get_p(a,7),0);    
+    if(reg_get_p(a,5)) {
+      CONS_CDR_P_SET(reg_get_p(a,5),reg_get_p(a,7));
+      reg_set_p(a,5,reg_get_p(a,7));
+    } else {
+      reg_set_p(a,5,reg_get_p(a,7));
+      reg_set_p(a,8,reg_get_p(a,7));      
+    }
+  }
+}
+
 void add_list(struct arenas *arenas) {
   /* r1 -- current list start & list whose car is matching pair for v; out
    * r2 -- newly allocated pair & current cons pair considered
@@ -21,8 +39,9 @@ void read_word(struct arenas *arenas,char *line) {
     * r2 -- used as scratch in callees
     * r3 -- place r4 is rooted in tree in CDR of pair, or 0 if root
     * r4 -- current linear list of chars (or tail thereof) at this level
-    * r5 -- used as scratch in callees
+    * r5,r7 -- used as scratch in callees and locally
     * r6 -- passed as val to callees
+    * r8 -- word in
     */
 
   uint32_t code_frag_b[] = {
@@ -46,15 +65,23 @@ void read_word(struct arenas *arenas,char *line) {
     I_REGCXRREG(3,0x02,1),
     I_REGCXRREG(4,0x01,3),
     I_REGNIL(1),
+    I_REGCXRREG(8,0x01,8),
     I_HALT,
   };
 
+  uint32_t code_frag_g[] = {
+    I_MVREG(1,4),
+    I_REGCXRREG(6,0x02,8),    
+    I_HALT,
+  };
+
+  word_to_list(arenas,line);
   execute(arenas,code_frag_d);  
-  for(char *c=line;*c;c++) {
-    o_reg_assign(arenas,1,4);
-    o_reg_im(arenas,6,(char)*c);
+  
+  while(reg_get_p(arenas,8)) {
+    execute(arenas,code_frag_g);
     add_list(arenas);
-    execute(arenas,code_frag_f);  
+    execute(arenas,code_frag_f);
   }
   execute(arenas,code_frag_b);
 }

@@ -13,7 +13,7 @@ void o_reg_assign(struct arenas *a,int to,int from) {
   // TODO: write barrier?
 }
 
-static inline void o_reg_nil(struct arenas *a,int reg) {
+void o_reg_nil(struct arenas *a,int reg) {
   a->registers[reg].r = 0;
   BITSET(a->reg_refs,reg,1);
 }
