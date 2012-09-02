@@ -5,7 +5,7 @@
 #include "util.h"
 #include "opcodes.h"
 
-##readcodes vm/opcodes.dat
+##readcodes opcodes.dat
 
 void o_reg_assign(struct arenas *a,int to,int from) {
   a->registers[to] = a->registers[from];

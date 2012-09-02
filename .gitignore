@@ -2,4 +2,5 @@
 *_aa.h
 vm/opcodes.c
 vm/opcodes.h
+vm/vm
 .depend

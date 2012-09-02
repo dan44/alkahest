@@ -1,37 +1,8 @@
-CC=gcc
-CFLAGS=-c -Wall -g -std=c99
-LDFLAGS=
-ASSEMBLY=vm/exectest.aa vm/constest.aa
-PREHEADERS=vm/opcodes.hp
-PRESOURCES=vm/opcodes.cp
-SOURCES=vm/vm.c vm/constest.c vm/util.c vm/queue.c
-EXECUTABLE=vm/vm
-OBJECTS=$(SOURCES:.c=.o) $(PRESOURCES:.cp=.o) 
+dev_all:
+	MODE=dev make -C vm all
 
-all: $(SOURCES) $(PRESOURCES) $(EXECUTABLE)
-	
-$(EXECUTABLE): $(OBJECTS) 
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
-
-%.c: %.cp
-	build/preproc.pl < $< > $@
-
-%.h: %.hp
-	build/preproc.pl < $< > $@
-
-%_aa.h: %.aa
-	build/assemble.pl $< > $@
+all:
+	make -C vm all
 
 clean:
-	rm -f $(EXECUTABLE) $(OBJECTS) $(PRESOURCES:.cp=.c) $(PREHEADERS:.hp=.h)  $(patsubst %.aa,%_aa.h,$(ASSEMBLY))
-
-depend: .depend
-
-.depend: $(SOURCES) $(PRESOURCES:.cp=.c) $(PREHEADERS:.hp=.h) $(patsubst %.aa,%_aa.h,$(ASSEMBLY))
-	rm -f ./.depend
-	$(CC) -MM $^ >> ./.depend
-
-include .depend
-
-vm/opcodes.cp: vm/opcodes.hp vm/opcodes.dat vm/vm.h
-vm/opcodes.hp: vm/opcodes.dat
+	make -C vm clean

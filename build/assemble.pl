@@ -4,6 +4,8 @@ use strict;
 use warnings;
 no warnings 'uninitialized';
 
+use FindBin qw($Bin);
+
 my ($filename) = @ARGV;
 
 my %opcodes;
@@ -14,7 +16,7 @@ sub dehex {
   return hex $_;
 }
 
-open(DATAFILE,"vm/opcodes.dat") || die "Cannot read opcodes.dat";
+open(DATAFILE,"$Bin/../vm/opcodes.dat") || die "Cannot read opcodes.dat";
 while(<DATAFILE>) {
   next if(/^\s*$/ or /^\s*;/);
   my @line = split /\s+/;
@@ -29,7 +31,7 @@ close DATAFILE;
 
 my %instr;
 
-open(DATAFILE,"vm/instr.dat") || die "Cannot read instr.dat";
+open(DATAFILE,"$Bin/../vm/instr.dat") || die "Cannot read instr.dat";
 while(<DATAFILE>) {
   next if(/^\s*$/ or /^\s*;/);
   /^(.*?)\s+\-\>\s+(.*?)$/;

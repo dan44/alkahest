@@ -4,6 +4,8 @@ use strict;
 use warnings;
 no warnings 'uninitialized';
 
+use FindBin qw($Bin);
+
 my (%code2symbol,%symbol2code);
 
 sub instr_jumptable {
