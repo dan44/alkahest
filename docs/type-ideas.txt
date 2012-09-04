@@ -1,0 +1,91 @@
+/* stdtype.alk */
+
+interface X is nullable when {
+  null;
+}
+
+interface X is comparable when {
+  int cmp(X,X);
+}
+
+type maybe(T) {
+  value: { value: T };
+  nil;
+}
+
+maybe(T) is nullable via {
+  null: nil;
+}
+
+maybe(comparable T) is comparable via {
+  int cmp(maybe(comparable T) x,maybe(comparable T) y) {
+    if(y is { value: yv }) {
+      if(x is { value : xv }) {
+        return comparable:cmp(xv,yv);
+      } else {
+        return 1;
+      }
+    } else {
+      if(x is { value : xv }) {
+        return -1;
+      } else {
+        return 0;
+      }
+    }
+  };
+}
+
+/* listlike.alk */
+
+interface X is listlike(T) when {
+  maybe(T) head(X);
+  maybe(list(T)) tail(X);
+
+} provides {
+  function (maybe(T),listlike(T)) next(listlike(T) list);
+  maybe(T) biggest(listlike(comparable T) here);
+}
+
+function (maybe(T),listlike(T)) listlike:next(listlike(T) list) {
+  return (listlike:head(list),listlike:tail(list));
+}
+
+maybe(T) listlike:biggest(listlike(comparable T) here) {
+  T out = nil;
+  while(here is { head: h, tail: t }) {
+    if(comparable:cmp(h,out) > 0) {
+      out = h;
+    }
+    here = t;
+  }
+  return out;
+}
+
+/* list.alk */
+
+type list(T) {
+  cell: { head: T, tail: list(T) };
+  nil: {};
+} provides {
+  function maybe(T) head(list(T) list);
+  function maybe(list(T)) tail(list(T) list);
+}
+
+list(T) is listlike(T);
+list(T) is nullable via { null: nil; };
+
+function maybe(T) list:head(list(T) list) {
+  if(list is cell { head: h, tail: _ }) {
+    return { value: h };
+  } else {
+    return nil;
+  }
+}
+
+function maybe(list(T)) list:tail(list(T) list) {
+  if(list is cell { head: _, tail: t }) {
+    return { value: t };
+  } else {
+    return nil;
+  }
+}
