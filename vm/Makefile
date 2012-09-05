@@ -8,7 +8,7 @@ LDFLAGS=
 vm_ASSEMBLY=exectest.aa constest.aa
 vm_PREHEADERS=opcodes.hp
 vm_PRESOURCES=opcodes.cp
-vm_SOURCES=vm.c constest.c util.c queue.c
+vm_SOURCES=vm.c constest.c util.c queue.c cons.c
 vm_EXECUTABLE=vm
 vm_OBJECTS=$(vm_SOURCES:.c=.o) $(vm_PRESOURCES:.cp=.o) 
 

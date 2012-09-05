@@ -3,6 +3,7 @@
 
 #include "vm.h"
 #include "opcodes.h"
+#include "cons.h"
 #include "constest_aa.h"
 
 void word_to_list(struct arenas *a,char *line) {

@@ -4,6 +4,7 @@
 #include "vm.h"
 #include "util.h"
 #include "opcodes.h"
+#include "cons.h"
 
 ##readcodes opcodes.dat
 
